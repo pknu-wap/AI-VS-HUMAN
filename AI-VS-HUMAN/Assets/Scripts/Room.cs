@@ -3,11 +3,11 @@ using UnityEngine;
 [ExecuteAlways]
 public class Room : MonoBehaviour
 {
-    [Header("방 크기 배수 (16 × n, 9 × n)")]
-    [Min(1)]
-    public int n = 1;
+    [Header("방 크기 배수")]
+    [Min(1)] public int nX = 1; // 가로 (16 × nX)
+    [Min(1)] public int nY = 1; // 세로 (9 × nY)
 
-    public Vector2 roomSize => new Vector2(16f * n, 9f * n); // 자동 계산으로 변경
+    public Vector2 roomSize => new Vector2(16f * nX, 9f * nY);
 
     public Bounds GetBounds()
     {

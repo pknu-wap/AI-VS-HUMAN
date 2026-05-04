@@ -29,7 +29,7 @@ public class RoomCameraController : MonoBehaviour
 
         if (currentRoom != null)
         {
-            if (currentRoom.n > camSizeController.n)
+            if (currentRoom.nX > camSizeController.n || currentRoom.nY > camSizeController.n)
             {
                 transform.position = new Vector3(player.position.x, player.position.y, cameraOffset.z);
             }
@@ -52,7 +52,7 @@ public class RoomCameraController : MonoBehaviour
             }
         }
 
-        if (currentRoom != null && currentRoom.n > camSizeController.n)
+        if (currentRoom != null && (currentRoom.nX > camSizeController.n || currentRoom.nY > camSizeController.n))
         {
             Vector3 target = GetClampedPosition(currentRoom);
             transform.position = Vector3.Lerp(transform.position, target, Time.deltaTime * 8f);
