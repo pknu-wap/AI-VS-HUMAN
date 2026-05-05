@@ -3,16 +3,19 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - enermy
+  - Enermy
+  - Enemy
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Enemy
   - Water
   - UI
   - Ground
-  - 
+  - player
   - 
   - 
   - 
