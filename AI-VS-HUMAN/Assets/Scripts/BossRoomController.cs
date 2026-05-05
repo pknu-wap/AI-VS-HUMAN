@@ -25,13 +25,6 @@ public class BossRoomController : MonoBehaviour
     {
         cam = Camera.main;
     }
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            EnterBossRoom();
-        }
-    }
 
     private void LateUpdate()
     {
@@ -80,6 +73,14 @@ public class BossRoomController : MonoBehaviour
     {
         phase = 1;
         roomCameraController.enabled = false; // 기존 카메라 컨트롤러 비활성화
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            EnterBossRoom();
+        }
     }
 
     // 보스 HP 절반 깎였을 때 호출 (나중에 보스 스크립트에서 연결)
