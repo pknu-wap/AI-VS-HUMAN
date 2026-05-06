@@ -1,3 +1,5 @@
+// 보스가 소환하는 회복 드론의 이동, 피격, 제한 시간, 사망 처리를 담당하는 스크립트
+// 드론이 제한 시간까지 살아남으면 보스를 회복시키고, 플레이어에게 파괴되면 회복 없이 사라진다.
 using UnityEngine;
 using System.Collections;
 
@@ -93,6 +95,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     IEnumerator Die(bool healBoss)
     {
+        // healBoss가 true면 제한 시간 생존으로 처리되어 보스에게 회복 결과를 전달한다.
         isDead = true;
 
         if (boss != null)

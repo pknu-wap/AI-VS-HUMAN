@@ -1,3 +1,5 @@
+// 적이 발사하는 기본 직선 탄환을 제어하는 스크립트
+// 발사 시 Init으로 방향/데미지/속도를 받은 뒤 움직이고, 플레이어 또는 벽에 닿으면 사라진다.
 using UnityEngine;
 
 public class Bullet : MonoBehaviour
@@ -8,6 +10,7 @@ public class Bullet : MonoBehaviour
 
     public LayerMask ignoreLayer;
 
+    // Init이 호출되기 전에는 움직이거나 충돌 처리하지 않는다.
     private Vector2 direction;
     private bool    isInit = false;
 
@@ -28,6 +31,7 @@ public class Bullet : MonoBehaviour
 
     public void Init(Vector2 dir, float dmg, float spd)
     {
+        // 프리팹 하나를 여러 적이 공유할 수 있게 발사 시점에 값을 넣어준다.
         direction = dir.normalized;
         damage    = dmg;
         speed     = spd;
@@ -54,7 +58,7 @@ public class Bullet : MonoBehaviour
         if (other.GetComponent<EnemyBase>()   != null) return;
         if (other.GetComponent<IDamageable>() != null) return;
 
-        // 플레이어 피격
+        // 플레이어는 하트 기반 체력이라 탄환 데미지와 무관하게 한 칸만 깎는다.
         PlayerHealth ph = other.GetComponent<PlayerHealth>();
         if (ph != null)
         {

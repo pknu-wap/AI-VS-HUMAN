@@ -1,3 +1,5 @@
+// 일반 병사 적의 시야 감지와 연사 공격을 담당하는 스크립트
+// 플레이어가 감지 범위 안에 있고 벽에 막히지 않았을 때 조준 딜레이 후 총알을 발사한다.
 using UnityEngine;
 using System.Collections;
 
@@ -95,11 +97,22 @@ public class SoldierEnemy : EnemyBase
     {
         if (bulletPrefab == null || firePoint == null) return;
 
-        Vector2    dir   = DirectionToPlayer();
-        float      angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-        GameObject obj   = Instantiate(bulletPrefab, firePoint.position, Quaternion.Euler(0f, 0f, angle));
-        Bullet     b     = obj.GetComponent<Bullet>();
-        if (b != null) b.Init(dir, bulletDamage, bulletSpeed);
+        Vector2 dir = DirectionToPlayer();
+
+        GameObject bulletObj = Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
+        Bullet bullet = bulletObj.GetComponent<Bullet>();
+        if (bullet != null)
+            bullet.Init(dir, bulletDamage, bulletSpeed);
+
+        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        bulletObj.transform.rotation = Quaternion.Euler(0, 0, angle);
+    }
+
+    // 플레이어 방향으로 스프라이트를 뒤집는다.
+    void FacePlayer()
+    {
+        if (spriteRenderer == null || player == null) return;
+        spriteRenderer.flipX = player.position.x < transform.position.x;
     }
 
     protected override void OnDrawGizmosSelected()

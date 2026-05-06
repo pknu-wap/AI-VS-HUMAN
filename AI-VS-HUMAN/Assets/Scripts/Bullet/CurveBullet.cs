@@ -1,3 +1,5 @@
+// 드론이 발사하는 탄환을 제어하는 스크립트
+// 현재는 실제 궤적을 휘게 만들지 않고, 발사 각도 배치로 곡선처럼 보이는 패턴을 만든다.
 using UnityEngine;
 
 public class CurveBullet : MonoBehaviour
@@ -8,6 +10,7 @@ public class CurveBullet : MonoBehaviour
 
     public LayerMask ignoreLayer;
 
+    // Init이 호출되기 전에는 움직이거나 충돌 처리하지 않는다.
     private Vector2 direction;
     private bool    isInit = false;
 
@@ -28,6 +31,7 @@ public class CurveBullet : MonoBehaviour
 
     public void Init(Vector2 dir, float dmg, float spd, float curve, bool left)
     {
+        // curve/left는 예전 곡선 이동 실험용 파라미터다. 현재 패턴에서는 호환을 위해 받기만 한다.
         direction = dir.normalized;
         damage    = dmg;
         speed     = spd;
@@ -55,7 +59,7 @@ public class CurveBullet : MonoBehaviour
         if (other.GetComponent<EnemyBase>()   != null) return;
         if (other.GetComponent<IDamageable>() != null) return;
 
-        // 플레이어 피격
+        // 플레이어는 하트 기반 체력이라 탄환 데미지와 무관하게 한 칸만 깎는다.
         PlayerHealth ph = other.GetComponent<PlayerHealth>();
         if (ph != null)
         {

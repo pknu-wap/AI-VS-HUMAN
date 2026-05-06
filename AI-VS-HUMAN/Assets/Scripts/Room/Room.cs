@@ -1,3 +1,5 @@
+// 방의 크기와 경계를 정의하는 스크립트
+// RoomCameraController와 BossRoomController는 이 Bounds를 기준으로 카메라 위치와 입장 여부를 판단한다.
 using UnityEngine;
 
 [ExecuteAlways]

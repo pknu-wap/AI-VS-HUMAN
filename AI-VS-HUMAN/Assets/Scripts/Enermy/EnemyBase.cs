@@ -1,3 +1,5 @@
+// 일반 적들이 공통으로 사용하는 체력, 감지, 피격, 사망 연출을 담당하는 기반 클래스
+// SoldierEnemy, ShieldEnemy, DroneEnemy는 이 클래스를 상속해서 개별 공격 패턴만 구현한다.
 using UnityEngine;
 using System.Collections;
 

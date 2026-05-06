@@ -185,7 +185,7 @@ MonoBehaviour:
   stopDistance: 2
   shieldTransform: {fileID: 6706278038650792234}
   shieldOffsetX: 0.6
-  bulletPrefab: {fileID: 0}
+  bulletPrefab: {fileID: 8328549674659963371, guid: fc60a2c9fda50a9418bbd5805937d41d, type: 3}
   bulletCount: 12
   bulletSpeed: 5
   bulletDamage: 1
