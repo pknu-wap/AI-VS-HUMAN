@@ -1,21 +1,19 @@
-// 일반 적들이 공통으로 사용하는 체력, 감지, 피격, 사망 연출을 담당하는 기반 클래스
+﻿// 일반 적들이 공통으로 사용하는 체력, 감지, 피격, 사망 연출을 담당하는 기반 클래스
 // SoldierEnemy, ShieldEnemy, DroneEnemy는 이 클래스를 상속해서 개별 공격 패턴만 구현한다.
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// 모든 적이 공통으로 사용하는 기본 클래스
-/// 
-/// 담당 기능:
-/// - 체력 관리
-/// - 플레이어 감지 거리 계산
-/// - 플레이어 방향 계산
-/// - 피격 시 빨간색 깜빡임
-/// - 사망 시 충돌 비활성화
-/// - 사망 후 페이드아웃 삭제
-/// 
-/// SoldierEnemy, ShieldEnemy 같은 적들은 이 클래스를 상속해서 사용한다.
-/// </summary>
+// 모든 적이 공통으로 사용하는 기본 클래스
+//
+// 담당 기능:
+// - 체력 관리
+// - 플레이어 감지 거리 계산
+// - 플레이어 방향 계산
+// - 피격 시 빨간색 깜빡임
+// - 사망 시 충돌 비활성화
+// - 사망 후 페이드아웃 삭제
+//
+// SoldierEnemy, ShieldEnemy 같은 적들은 이 클래스를 상속해서 사용한다.
 public abstract class EnemyBase : MonoBehaviour, IDamageable
 {
     [Header("기본 스탯")]
@@ -50,18 +48,14 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         SetupRigidbody();
     }
 
-    /// <summary>
-    /// 체력 같은 기본 수치를 초기화한다.
-    /// </summary>
+    // 체력 같은 기본 수치를 초기화한다.
     private void InitStats()
     {
         currentHp = maxHp;
     }
 
-    /// <summary>
-    /// 자주 사용하는 컴포넌트를 미리 찾아 저장한다.
-    /// 매번 GetComponent를 부르지 않기 위한 최적화.
-    /// </summary>
+    // 자주 사용하는 컴포넌트를 미리 찾아 저장한다.
+    // 매번 GetComponent를 부르지 않기 위한 최적화.
     private void CacheComponents()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -71,9 +65,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         originalColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
     }
 
-    /// <summary>
-    /// 플레이어 Transform을 한 번만 찾아 저장한다.
-    /// </summary>
+    // 플레이어 Transform을 한 번만 찾아 저장한다.
     private void CachePlayer()
     {
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
@@ -82,10 +74,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
             player = playerObj.transform;
     }
 
-    /// <summary>
-    /// 적의 Rigidbody 설정을 정리한다.
-    /// 중력이 있는 적은 불필요하게 떨어지지 않도록 Kinematic으로 바꾼다.
-    /// </summary>
+    // 적의 Rigidbody 설정을 정리한다.
+    // 중력이 있는 적은 불필요하게 떨어지지 않도록 Kinematic으로 바꾼다.
     private void SetupRigidbody()
     {
         if (rb == null) return;
@@ -94,9 +84,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
             rb.bodyType = RigidbodyType2D.Kinematic;
     }
 
-    /// <summary>
-    /// 플레이어가 감지 범위 안에 있는지 확인한다.
-    /// </summary>
+    // 플레이어가 감지 범위 안에 있는지 확인한다.
     protected bool IsPlayerInDetectionRange()
     {
         if (player == null) return false;
@@ -105,9 +93,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         return distance <= detectionRange;
     }
 
-    /// <summary>
-    /// 플레이어가 공격 범위 안에 있는지 확인한다.
-    /// </summary>
+    // 플레이어가 공격 범위 안에 있는지 확인한다.
     protected bool IsPlayerInAttackRange()
     {
         if (player == null) return false;
@@ -116,10 +102,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         return distance <= attackRange;
     }
 
-    /// <summary>
-    /// 현재 적 위치에서 플레이어를 향하는 방향을 반환한다.
-    /// 플레이어가 없으면 Vector2.zero를 반환한다.
-    /// </summary>
+    // 현재 적 위치에서 플레이어를 향하는 방향을 반환한다.
+    // 플레이어가 없으면 Vector2.zero를 반환한다.
     protected Vector2 DirectionToPlayer()
     {
         if (player == null) return Vector2.zero;
@@ -127,10 +111,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         return ((Vector2)player.position - (Vector2)transform.position).normalized;
     }
 
-    /// <summary>
-    /// 데미지를 받았을 때 호출된다.
-    /// IDamageable 인터페이스 때문에 public이어야 한다.
-    /// </summary>
+    // 데미지를 받았을 때 호출된다.
+    // IDamageable 인터페이스 때문에 public이어야 한다.
     public virtual void TakeDamage(float damage)
     {
         if (isDead) return;
@@ -146,10 +128,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         PlayHitFlash();
     }
 
-    /// <summary>
-    /// 피격 시 빨간색으로 잠깐 깜빡이게 한다.
-    /// 이미 깜빡이는 중이면 기존 코루틴을 멈추고 다시 시작한다.
-    /// </summary>
+    // 피격 시 빨간색으로 잠깐 깜빡이게 한다.
+    // 이미 깜빡이는 중이면 기존 코루틴을 멈추고 다시 시작한다.
     private void PlayHitFlash()
     {
         if (spriteRenderer == null) return;
@@ -172,10 +152,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         hitFlashCoroutine = null;
     }
 
-    /// <summary>
-    /// 적 사망 처리.
-    /// 자식 클래스에서 특별한 사망 연출이 필요하면 override해서 확장할 수 있다.
-    /// </summary>
+    // 적 사망 처리.
+    // 자식 클래스에서 특별한 사망 연출이 필요하면 override해서 확장할 수 있다.
     protected virtual void Die()
     {
         if (isDead) return;
@@ -189,9 +167,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         StartCoroutine(FadeOutAndDestroy());
     }
 
-    /// <summary>
-    /// 피격 깜빡임 코루틴을 정리하고 색상을 원래대로 돌린다.
-    /// </summary>
+    // 피격 깜빡임 코루틴을 정리하고 색상을 원래대로 돌린다.
     private void StopHitFlash()
     {
         if (hitFlashCoroutine != null)
@@ -204,18 +180,14 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
             spriteRenderer.color = originalColor;
     }
 
-    /// <summary>
-    /// 죽은 적이 더 이상 공격이나 충돌 판정을 하지 않도록 콜라이더를 끈다.
-    /// </summary>
+    // 죽은 적이 더 이상 공격이나 충돌 판정을 하지 않도록 콜라이더를 끈다.
     private void DisableCollider()
     {
         if (col != null)
             col.enabled = false;
     }
 
-    /// <summary>
-    /// 죽은 적의 물리 움직임을 정지한다.
-    /// </summary>
+    // 죽은 적의 물리 움직임을 정지한다.
     private void StopPhysics()
     {
         if (rb == null) return;
@@ -225,9 +197,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         rb.bodyType = RigidbodyType2D.Kinematic;
     }
 
-    /// <summary>
-    /// 사망 후 서서히 투명해진 뒤 오브젝트를 삭제한다.
-    /// </summary>
+    // 사망 후 서서히 투명해진 뒤 오브젝트를 삭제한다.
     private IEnumerator FadeOutAndDestroy()
     {
         if (spriteRenderer == null)
@@ -253,9 +223,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         Destroy(gameObject);
     }
 
-    /// <summary>
-    /// Unity 에디터에서 적의 감지 범위와 공격 범위를 시각적으로 보여준다.
-    /// </summary>
+    // Unity 에디터에서 적의 감지 범위와 공격 범위를 시각적으로 보여준다.
     protected virtual void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;

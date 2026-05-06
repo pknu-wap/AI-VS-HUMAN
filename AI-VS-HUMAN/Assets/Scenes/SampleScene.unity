@@ -6850,7 +6850,7 @@ MonoBehaviour:
   detectRadius: 1
   enemyLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
 --- !u!114 &1436086877
 MonoBehaviour:
   m_ObjectHideFlags: 0

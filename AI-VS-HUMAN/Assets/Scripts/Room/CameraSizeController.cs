@@ -11,7 +11,6 @@ public class CameraSizeController : MonoBehaviour
     public int n = 1; // 1 → 4.5, 2 → 9.0, 3 → 13.5
 
     private Camera cam;
-    private int prevN;
 
     private void Awake()
     {

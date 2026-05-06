@@ -1,14 +1,12 @@
-// 일반 병사 적의 시야 감지와 연사 공격을 담당하는 스크립트
+﻿// 일반 병사 적의 시야 감지와 연사 공격을 담당하는 스크립트
 // 플레이어가 감지 범위 안에 있고 벽에 막히지 않았을 때 조준 딜레이 후 총알을 발사한다.
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// 병사 적
-/// - 제자리에서 플레이어 감지 시 사격
-/// - 조준 딜레이(경고 연출) 후 연사
-/// - 장애물 감지로 벽 너머 사격 방지
-/// </summary>
+// 병사 적
+// - 제자리에서 플레이어 감지 시 사격
+// - 조준 딜레이(경고 연출) 후 연사
+// - 장애물 감지로 벽 너머 사격 방지
 public class SoldierEnemy : EnemyBase
 {
     [Header("공격")]
@@ -54,7 +52,7 @@ public class SoldierEnemy : EnemyBase
         }
     }
 
-    /// <summary>거리 + 장애물 기반 시야 판정</summary>
+    // 거리 + 장애물 기반 시야 판정
     void CheckPlayerSight()
     {
         if (!IsPlayerInDetectionRange()) { playerInSight = false; return; }
@@ -66,7 +64,7 @@ public class SoldierEnemy : EnemyBase
         playerInSight       = hit.collider == null;
     }
 
-    /// <summary>노란색 경고 → 연사. 조준 중 시야 잃으면 취소</summary>
+    // 노란색 경고 → 연사. 조준 중 시야 잃으면 취소
     IEnumerator AimAndFire()
     {
         isAttacking = true;

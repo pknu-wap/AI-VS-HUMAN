@@ -17,6 +17,9 @@ public class PlayerMove : MonoBehaviour
     [SerializeField] private float _dashPower    = 20f;
     [SerializeField] private float _dashTime     = 0.2f;
     [SerializeField] private float _dashCooldown = 1f;
+    private bool _canDash = true;
+    private bool _isDashing;
+    private Coroutine _dashCoroutine;
 
     [Header("Ground Check")]
     [SerializeField] private LayerMask _groundLayer;
@@ -80,9 +83,9 @@ public class PlayerMove : MonoBehaviour
             _jumpRemain = _maxJumpCount;
 
         // 에디터 시각화
-        Debug.DrawRay(feet,                          Vector2.down * _groundCheckRadius, Color.red);
-        Debug.DrawRay(feet + Vector2.left  * 0.15f, Vector2.down * _groundCheckRadius, Color.red);
-        Debug.DrawRay(feet + Vector2.right * 0.15f, Vector2.down * _groundCheckRadius, Color.red);
+        Debug.DrawRay(feetPos,                          Vector2.down * _groundCheckRadius, Color.red);
+        Debug.DrawRay(feetPos + Vector2.left  * 0.15f, Vector2.down * _groundCheckRadius, Color.red);
+        Debug.DrawRay(feetPos + Vector2.right * 0.15f, Vector2.down * _groundCheckRadius, Color.red);
     }
 
     private bool IsGroundBelow(Vector2 feetPos)

@@ -1,11 +1,7 @@
+﻿// 보스가 발사하는 꽃잎 탄환의 곡선 이동과 충돌 처리를 담당하는 스크립트
+// 기본 진행 방향으로 날아가면서 좌우로 휘고, 플레이어나 지형에 닿으면 사라진다.
 using UnityEngine;
 
-/// <summary>
-/// 꽃잎 탄환
-/// - 기본 진행 방향으로 날아가면서 좌우로 부드럽게 휘어짐
-/// - 플레이어에게 닿으면 데미지를 주고 삭제
-/// - 벽 또는 바닥에 닿으면 삭제
-/// </summary>
 public class PetalBullet : MonoBehaviour
 {
     [Header("충돌")]
@@ -51,14 +47,12 @@ public class PetalBullet : MonoBehaviour
         rb.bodyType = RigidbodyType2D.Kinematic;
     }
 
-    /// <summary>
-    /// 보스가 탄환을 생성한 직후 호출하는 초기화 함수
-    /// direction: 탄환 진행 방향
-    /// speed: 탄환 속도
-    /// curvature: 휘어지는 정도
-    /// maxLifetime: 생존 시간
-    /// spawnOffset: 보스 몸에서 떨어져 생성되는 거리
-    /// </summary>
+    // 보스가 탄환을 생성한 직후 호출하는 초기화 함수
+    // direction: 탄환 진행 방향
+    // speed: 탄환 속도
+    // curvature: 휘어지는 정도
+    // maxLifetime: 생존 시간
+    // spawnOffset: 보스 몸에서 떨어져 생성되는 거리
     public void Init(Vector2 direction, float speed, float curvature, float maxLifetime, float spawnOffset = 1.5f)
     {
         this.direction = direction.normalized;

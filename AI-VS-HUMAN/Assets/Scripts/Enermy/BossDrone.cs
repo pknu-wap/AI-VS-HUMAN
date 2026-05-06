@@ -1,22 +1,21 @@
-// 거대 드론 보스의 이동, 탄막 패턴, 회복 드론 소환, 체력 UI, 페이즈 이벤트를 담당하는 스크립트
+﻿// 거대 드론 보스의 이동, 탄막 패턴, 회복 드론 소환, 체력 UI, 페이즈 이벤트를 담당하는 스크립트
 // 플레이어를 감지하면 패턴 루프를 시작하고, 체력이 절반 이하가 되면 BossRoomController에 이벤트를 보낸다.
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using Action = System.Action;
 
-/// <summary>
-/// 거대 드론 보스
-/// - 플레이어 감지 후 패턴 시작
-/// - 베지에 곡선을 이용한 부드러운 U자 돌진
-/// - 돌진 중 설정된 딜레이 간격으로 부채꼴 탄막 발사
-/// - 고정된 Y축 높이 유지 (벽 회피 및 플레이어 Y추적 제거)
-/// </summary>
+// 거대 드론 보스
+// - 플레이어 감지 후 패턴 시작
+// - 베지에 곡선을 이용한 부드러운 U자 돌진
+// - 돌진 중 설정된 딜레이 간격으로 부채꼴 탄막 발사
+// - 고정된 Y축 높이 유지 (벽 회피 및 플레이어 Y추적 제거)
 public class BossDrone : MonoBehaviour, IDamageable
 {
     [Header("체력")]
     public float maxHp = 600f;
     public float fadeDuration = 2f;
+    private float currentHp;
 
     public event Action HalfHealthReached;
     public float CurrentHp => currentHp;
@@ -40,6 +39,11 @@ public class BossDrone : MonoBehaviour, IDamageable
     public float dashSpeed = 8f;
     public float dashDropY = 6f;
     public float dashWidth = 10f;
+
+    [Header("벽 회피")]
+    public float wallAvoidDistance = 1.8f;
+    public float wallAvoidSpeed = 5f;
+    public float wallCheckRadius = 0.45f;
 
     [Header("부채꼴 탄막")]
     public GameObject fanBulletPrefab;
@@ -66,6 +70,9 @@ public class BossDrone : MonoBehaviour, IDamageable
     public float petalLoopDelay = 3f;
     public float petalMoveSpeedMultiplier = 0.45f;
 
+    [Header("HP 바")]
+    public Color hpBarColor = new Color(0.9f, 0.1f, 0.1f);
+
     [Header("힐링 드론")]
     public GameObject healDronePrefab;
     public int healDroneCount = 2;
@@ -77,8 +84,6 @@ public class BossDrone : MonoBehaviour, IDamageable
     public float healDroneOffsetY     = -1f;
 
     private int   healDroneAliveCount = 0;
-    private bool  isHealPhase         = false;
-    private float healPhaseDelay      = 3f;
 
     private Transform      player;
     private bool           isDead       = false;
@@ -87,9 +92,10 @@ public class BossDrone : MonoBehaviour, IDamageable
     private bool           isDoingPetal = false;
     private bool           halfHealthNotified = false;
     private float          hoverTime    = 0f;
-    private float          petalTime    = 0f;
     private float          swayTime     = 0f;
     private float          swayBaseX    = 0f;
+    private float          baseY        = 0f;
+    private float          petalBaseAngle = 0f;
     private SpriteRenderer spriteRenderer;
     private Rigidbody2D    rb;
     private Collider2D     bossCollider;
@@ -97,6 +103,7 @@ public class BossDrone : MonoBehaviour, IDamageable
     private Coroutine      hitFlashCoroutine;
     private Slider         hpSlider;
     private Canvas         bossCanvas;
+    private Color          originalColor;
 
     void Start()
     {
@@ -108,6 +115,7 @@ public class BossDrone : MonoBehaviour, IDamageable
         spriteRenderer = GetComponent<SpriteRenderer>();
         bossCollider = GetComponent<Collider2D>();
         mainCamera = Camera.main;
+        baseY = transform.position.y;
 
         rb = GetComponent<Rigidbody2D>();
         bossCollider = GetComponent<Collider2D>();
@@ -132,7 +140,7 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     void ClearExistingHealDrones()
     {
-        HealDrone[] drones = FindObjectsOfType<HealDrone>();
+        HealDrone[] drones = FindObjectsByType<HealDrone>(FindObjectsSortMode.None);
         foreach (HealDrone drone in drones)
         {
             if (drone != null) Destroy(drone.gameObject);
@@ -168,15 +176,10 @@ public class BossDrone : MonoBehaviour, IDamageable
         float bob = Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude;
         float targetX = swayBaseX + Mathf.Sin(swayTime * swaySpeed) * swayAmplitude;
         float targetY = baseY + bob;
-        
         float currentMoveSpeed = isDoingPetal ? moveSpeed * petalMoveSpeedMultiplier : moveSpeed;
 
-        float idealY  = player.position.y + keepDistanceY + bob;
-        float minY    = transform.position.y - 0.5f * Time.deltaTime;
-        float targetY = Mathf.Max(idealY, minY);
-
-        float newX = Mathf.MoveTowards(transform.position.x, targetX, moveSpeed * Time.deltaTime);
-        float newY = Mathf.MoveTowards(transform.position.y, targetY, moveSpeed * Time.deltaTime);
+        float newX = Mathf.MoveTowards(transform.position.x, targetX, currentMoveSpeed * Time.deltaTime);
+        float newY = Mathf.MoveTowards(transform.position.y, targetY, currentMoveSpeed * Time.deltaTime);
 
         LayerMask groundMask = LayerMask.GetMask("Ground");
         Vector3 nextPosition = new Vector3(newX, newY, 0f);
@@ -457,7 +460,6 @@ public class BossDrone : MonoBehaviour, IDamageable
         // 보스 주변 양쪽에 회복 드론을 소환하고, 모든 드론이 사라질 때까지 회복 페이즈를 유지한다.
         if (healDronePrefab == null) yield break;
 
-        isHealPhase         = true;
         healDroneAliveCount = 0;
         Vector3[] offsets = { new Vector3(-healDroneOffsetX, healDroneOffsetY, 0f), new Vector3(healDroneOffsetX, healDroneOffsetY, 0f) };
         int spawnCount = Mathf.Min(healDroneCount, offsets.Length);
@@ -496,6 +498,7 @@ public class BossDrone : MonoBehaviour, IDamageable
         if (isDead) return;
         currentHp = Mathf.Clamp(currentHp - damage, 0f, maxHp);
         UpdateHpBar();
+        CheckHalfHealthReached();
         if (hitFlashCoroutine != null) StopCoroutine(hitFlashCoroutine);
         hitFlashCoroutine = StartCoroutine(HitFlash());
         if (currentHp <= 0f) StartCoroutine(Die());

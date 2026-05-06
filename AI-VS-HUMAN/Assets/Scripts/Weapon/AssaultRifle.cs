@@ -13,8 +13,8 @@ public class AssaultRifle : MonoBehaviour
     [SerializeField] private float _bulletSpeed = 25f;
     [SerializeField] private float _maxDistance = 20f;
     [SerializeField] private float _fireRate = 0.1f;
-    [SerializeField] private LayerMask _enemyLayer;
-    [SerializeField] private LayerMask _wallLayer;
+    [SerializeField] private LayerMask _enemyLayer = default;
+    [SerializeField] private LayerMask _wallLayer = default;
 
     [Header("Bullet Visual")]
     [SerializeField] private Color _bulletColor = Color.yellow;
