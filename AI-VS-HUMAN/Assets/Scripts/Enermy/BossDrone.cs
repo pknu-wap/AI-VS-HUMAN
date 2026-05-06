@@ -1,6 +1,9 @@
+// 거대 드론 보스의 이동, 탄막 패턴, 회복 드론 소환, 체력 UI, 페이즈 이벤트를 담당하는 스크립트
+// 플레이어를 감지하면 패턴 루프를 시작하고, 체력이 절반 이하가 되면 BossRoomController에 이벤트를 보낸다.
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using Action = System.Action;
 
 public class BossDrone : MonoBehaviour, IDamageable
 {
@@ -9,8 +12,16 @@ public class BossDrone : MonoBehaviour, IDamageable
     public float fadeDuration = 2f;
     private float currentHp;
 
+    public event Action HalfHealthReached;
+    public float CurrentHp => currentHp;
+    public float HealthRatio => maxHp <= 0f ? 0f : currentHp / maxHp;
+
     [Header("감지")]
     public float detectionRange = 25f;
+
+    [Header("Camera Bounds")]
+    public bool keepInsideCameraView = true;
+    public float cameraEdgePadding = 0.5f;
 
     [Header("이동")]
     public float moveSpeed      = 2.5f;
@@ -74,22 +85,29 @@ public class BossDrone : MonoBehaviour, IDamageable
     private bool           isActive     = false;
     private bool           isDoingUDash = false;
     private bool           isDoingPetal = false;
+    private bool           halfHealthNotified = false;
     private float          hoverTime    = 0f;
     private float          petalTime    = 0f;
     private float          swayTime     = 0f;
     private float          swayBaseX    = 0f;
     private SpriteRenderer spriteRenderer;
     private Rigidbody2D    rb;
+    private Collider2D     bossCollider;
+    private Camera         mainCamera;
     private Coroutine      hitFlashCoroutine;
     private Slider         hpSlider;
     private Canvas         bossCanvas;
 
     void Start()
     {
+        // 씬에 남아 있을 수 있는 이전 회복 드론을 정리하고 보스 상태를 초기화한다.
         ClearExistingHealDrones();
 
         currentHp      = maxHp;
+        halfHealthNotified = currentHp <= maxHp * 0.5f;
         spriteRenderer = GetComponent<SpriteRenderer>();
+        bossCollider = GetComponent<Collider2D>();
+        mainCamera = Camera.main;
 
         rb = GetComponent<Rigidbody2D>();
         if (rb != null)
@@ -123,6 +141,7 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     void Update()
     {
+        // 플레이어가 감지 범위에 들어오기 전까지는 보스 패턴을 시작하지 않는다.
         if (isDead || player == null) return;
 
         float dist = Vector2.Distance(transform.position, player.position);
@@ -163,6 +182,14 @@ public class BossDrone : MonoBehaviour, IDamageable
         transform.position = nextPosition;
     }
 
+    void LateUpdate()
+    {
+        if (isDead || !isActive)
+            return;
+
+        ClampInsideCameraView();
+    }
+
     Vector3 GetSafePosition(Vector3 wantedPosition, LayerMask groundMask)
     {
         Vector2 avoidDir = Vector2.zero;
@@ -196,6 +223,51 @@ public class BossDrone : MonoBehaviour, IDamageable
         }
 
         return wantedPosition;
+    }
+
+    private void ClampInsideCameraView()
+    {
+        // 보스가 카메라 밖으로 나가지 않게 콜라이더 크기와 여백을 고려해 위치를 제한한다.
+        if (!keepInsideCameraView)
+            return;
+
+        if (mainCamera == null)
+            mainCamera = Camera.main;
+
+        if (mainCamera == null || !mainCamera.orthographic)
+            return;
+
+        float halfHeight = mainCamera.orthographicSize;
+        float halfWidth = halfHeight * mainCamera.aspect;
+        Vector3 cameraPosition = mainCamera.transform.position;
+
+        Vector2 bossExtents = GetBossExtents();
+        float minX = cameraPosition.x - halfWidth + bossExtents.x + cameraEdgePadding;
+        float maxX = cameraPosition.x + halfWidth - bossExtents.x - cameraEdgePadding;
+        float minY = cameraPosition.y - halfHeight + bossExtents.y + cameraEdgePadding;
+        float maxY = cameraPosition.y + halfHeight - bossExtents.y - cameraEdgePadding;
+
+        Vector3 clampedPosition = transform.position;
+        clampedPosition.x = minX > maxX
+            ? cameraPosition.x
+            : Mathf.Clamp(clampedPosition.x, minX, maxX);
+        clampedPosition.y = minY > maxY
+            ? cameraPosition.y
+            : Mathf.Clamp(clampedPosition.y, minY, maxY);
+
+        transform.position = clampedPosition;
+        swayBaseX = transform.position.x;
+    }
+
+    private Vector2 GetBossExtents()
+    {
+        if (bossCollider != null)
+            return bossCollider.bounds.extents;
+
+        if (spriteRenderer != null)
+            return spriteRenderer.bounds.extents;
+
+        return Vector2.one * 0.5f;
     }
 
     bool IsNearWall(LayerMask groundMask)
@@ -234,6 +306,7 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     IEnumerator PatternLoop()
     {
+        // 공격 패턴 순서를 섞어 반복 실행하고, 회복 드론 루프는 별도 코루틴으로 돌린다.
         yield return new WaitForSeconds(2f);
 
         StartCoroutine(HealDroneLoop());
@@ -286,6 +359,7 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     IEnumerator UDashAndFire()
     {
+        // U자 이동 중 적절한 타이밍에 플레이어 방향 부채꼴 탄막을 발사한다.
         if (isDead) yield break;
 
         LayerMask groundMask = LayerMask.GetMask("Ground");
@@ -427,6 +501,7 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     IEnumerator HealDronePattern()
     {
+        // 보스 주변 양쪽에 회복 드론을 소환하고, 모든 드론이 사라질 때까지 회복 페이즈를 유지한다.
         if (healDronePrefab == null) yield break;
 
         isHealPhase         = true;
@@ -521,6 +596,7 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     void FireFanBullets()
     {
+        // 플레이어 방향을 중심으로 fanSpreadAngle만큼 퍼지는 탄막을 발사한다.
         if (fanBulletPrefab == null || player == null) return;
 
         Vector2 baseDir    = ((Vector2)player.position - (Vector2)transform.position).normalized;
@@ -549,6 +625,7 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     IEnumerator FirePetalPattern()
     {
+        // 여러 방향으로 팔을 만들고, 각 팔에서 곡선 이동 탄환을 순차 발사한다.
         if (petalBulletPrefab == null) yield break;
 
         float curvature = Mathf.Sin(petalTime * petalCurvatureSpeed) * petalMaxCurvature;
@@ -588,10 +665,12 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     public void TakeDamage(float damage)
     {
+        // 데미지를 받은 뒤 체력바를 갱신하고, 절반 체력 이벤트가 필요한지 확인한다.
         if (isDead) return;
 
         currentHp = Mathf.Clamp(currentHp - damage, 0f, maxHp);
         UpdateHpBar();
+        CheckHalfHealthReached();
 
         if (hitFlashCoroutine != null)
             StopCoroutine(hitFlashCoroutine);
@@ -650,6 +729,7 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     void CreateHpBarUI()
     {
+        // 보스 체력바는 런타임에 화면 상단 UI로 생성한다.
         GameObject canvasObj = new GameObject("BossHpCanvas");
         bossCanvas = canvasObj.AddComponent<Canvas>();
         bossCanvas.renderMode   = RenderMode.ScreenSpaceOverlay;
@@ -730,6 +810,19 @@ public class BossDrone : MonoBehaviour, IDamageable
     {
         if (hpSlider != null)
             hpSlider.value = currentHp;
+    }
+
+    private void CheckHalfHealthReached()
+    {
+        // 체력 절반 이벤트는 한 번만 발생해야 보스룸 2페이즈가 중복 시작되지 않는다.
+        if (halfHealthNotified)
+            return;
+
+        if (currentHp > maxHp * 0.5f)
+            return;
+
+        halfHealthNotified = true;
+        HalfHealthReached?.Invoke();
     }
 
     void OnDrawGizmosSelected()

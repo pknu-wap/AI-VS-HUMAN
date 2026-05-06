@@ -1,15 +1,7 @@
+// 플레이어가 대시 중일 때 주변 적을 감지해서 밀어내는 스크립트
+// PlayerMove가 대시 시작/종료 시 IsDashing 값을 바꾸면 이 스크립트가 넉백을 한 번 적용한다.
 using UnityEngine;
 
-/// <summary>
-/// 대쉬 중에만 주변 적을 밀어냄
-/// - 평소엔 적과 그냥 통과
-/// - 대쉬 중일 때 IsDashing = true 로 설정해주면 OverlapCircle로 감지해서 밀어냄
-/// 
-/// [사용법]
-/// 대쉬 스크립트에서:
-///   GetComponent<PlayerDashKnockback>().IsDashing = true;  // 대쉬 시작
-///   GetComponent<PlayerDashKnockback>().IsDashing = false; // 대쉬 끝
-/// </summary>
 public class PlayerDashKnockback : MonoBehaviour
 {
     [Header("넉백 설정")]
@@ -37,6 +29,7 @@ public class PlayerDashKnockback : MonoBehaviour
 
     void DetectAndKnockback()
     {
+        // 대시 한 번에 여러 번 밀리지 않도록 첫 감지 후 knockbackApplied를 잠근다.
         Collider2D[] hits = Physics2D.OverlapCircleAll(
             transform.position,
             detectRadius,
@@ -61,6 +54,7 @@ public class PlayerDashKnockback : MonoBehaviour
     {
         if (rb == null) yield break;
 
+        // 넉백 중에는 중력을 잠시 끄고, 시간이 지나면 원래 중력값으로 돌린다.
         Vector2 originalVelocity = rb.linearVelocity;
         float originalGravity    = rb.gravityScale;
 

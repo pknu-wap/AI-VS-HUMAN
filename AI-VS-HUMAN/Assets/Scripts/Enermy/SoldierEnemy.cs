@@ -1,12 +1,8 @@
+// 일반 병사 적의 시야 감지와 연사 공격을 담당하는 스크립트
+// 플레이어가 감지 범위 안에 있고 벽에 막히지 않았을 때 조준 딜레이 후 총알을 발사한다.
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// 일반 병사 적 (개선판)
-/// - 제자리에서 플레이어 감지 시 총 발사 (이동 없음)
-/// - 장애물 감지해서 벽 너머 못 쏨
-/// - 첫 발사 전 조준 딜레이 (경고 연출)
-/// </summary>
 public class SoldierEnemy : EnemyBase
 {
     [Header("병사 - 공격")]
@@ -51,9 +47,7 @@ public class SoldierEnemy : EnemyBase
         }
     }
 
-    /// <summary>
-    /// 플레이어가 감지 범위 안에 있고 장애물이 없는지 확인
-    /// </summary>
+    // 플레이어가 감지 범위 안에 있고 장애물에 막히지 않았는지 확인한다.
     void CheckPlayerSight()
     {
         float dist = Vector2.Distance(transform.position, player.position);
@@ -80,10 +74,7 @@ public class SoldierEnemy : EnemyBase
         playerInSight = hit.collider == null;
     }
 
-    /// <summary>
-    /// 조준 딜레이 후 연사
-    /// 노란색으로 깜빡여서 "곧 쏜다" 경고
-    /// </summary>
+    // 조준 딜레이 동안 노란색 경고를 보여준 뒤 연사한다.
     IEnumerator AimAndFire()
     {
         isAttacking = true;
@@ -117,7 +108,7 @@ public class SoldierEnemy : EnemyBase
         isAttacking = false;
     }
 
-    /// <summary>총알 한 발 발사</summary>
+    // 플레이어 방향으로 총알 한 발을 발사한다.
     void FireBullet()
     {
         if (bulletPrefab == null || firePoint == null) return;
@@ -133,7 +124,7 @@ public class SoldierEnemy : EnemyBase
         bulletObj.transform.rotation = Quaternion.Euler(0, 0, angle);
     }
 
-    /// <summary>플레이어 방향으로 스프라이트 뒤집기</summary>
+    // 플레이어 방향으로 스프라이트를 뒤집는다.
     void FacePlayer()
     {
         if (spriteRenderer == null || player == null) return;

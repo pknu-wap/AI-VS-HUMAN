@@ -1,13 +1,8 @@
+// 방패를 든 적의 이동, 방어 판정, 방사형 탄막 공격을 담당하는 스크립트
+// 플레이어가 방패 방향에서 공격하면 데미지를 막고, 감지 범위 안에서는 접근 후 공격한다.
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// 방패 병사
-/// - 방패는 왼쪽/오른쪽만 (X축 기준)
-/// - 플레이어가 방패 방향에 있으면 데미지 무효
-/// - 플레이어 감지 시 접근
-/// - 충격파는 방패 방향으로 부채꼴 탄막
-/// </summary>
 public class ShieldEnemy : EnemyBase
 {
     [Header("이동")]
@@ -63,10 +58,7 @@ public class ShieldEnemy : EnemyBase
         }
     }
 
-    /// <summary>
-    /// 방패 위치를 왼쪽/오른쪽으로만 배치
-    /// 위아래는 없고 X축만 이동
-    /// </summary>
+    // 방패 위치를 X축 기준 왼쪽/오른쪽으로만 배치한다.
     void UpdateShield()
     {
         if (shieldTransform == null) return;
@@ -81,7 +73,7 @@ public class ShieldEnemy : EnemyBase
             shieldSr.flipX = !shieldOnRight;
     }
 
-    /// <summary>몸통 스프라이트 플레이어 방향으로 뒤집기</summary>
+    // 몸통 스프라이트를 플레이어 방향으로 뒤집는다.
     void FacePlayer()
     {
         if (spriteRenderer == null || player == null) return;
@@ -89,18 +81,14 @@ public class ShieldEnemy : EnemyBase
         spriteRenderer.flipX = player.position.x < transform.position.x;
     }
 
-    /// <summary>플레이어 방향으로 이동</summary>
+    // 플레이어 방향으로 수평 이동한다.
     void MoveTowardPlayer()
     {
         float dirX = player.position.x > transform.position.x ? 1f : -1f;
         transform.Translate(Vector2.right * dirX * moveSpeed * Time.deltaTime);
     }
 
-    /// <summary>
-    /// 데미지 받기 오버라이드
-    /// 플레이어가 방패 방향(같은 X방향)에 있으면 막기
-    /// 위아래나 반대쪽에서 오면 피격
-    /// </summary>
+    // 방패 방향에서 들어온 공격이면 막고, 그 외 방향이면 EnemyBase의 피격 처리를 사용한다.
     public override void TakeDamage(float damage)
     {
         if (isDead) return;
@@ -114,10 +102,7 @@ public class ShieldEnemy : EnemyBase
         base.TakeDamage(damage);
     }
 
-    /// <summary>
-    /// X축 기준으로만 방패 막기 판정
-    /// 플레이어가 방패와 같은 방향(X축)에 있으면 막힘
-    /// </summary>
+    // X축 기준으로 플레이어가 방패와 같은 방향에 있는지 확인한다.
     bool IsAttackBlocked()
     {
         if (player == null) return false;
@@ -128,10 +113,7 @@ public class ShieldEnemy : EnemyBase
         return shieldOnRight == playerOnRight;
     }
 
-    /// <summary>
-    /// 부채꼴 탄막 공격
-    /// 방패 방향으로 spreadAngle 만큼 퍼지게 발사
-    /// </summary>
+    // 공격 전 경고 색을 보여준 뒤 탄막을 발사한다.
     IEnumerator FanAttack()
     {
         isAttacking = true;
@@ -155,7 +137,7 @@ public class ShieldEnemy : EnemyBase
         isAttacking = false;
     }
 
-    /// <summary>360도 방사형 탄막 발사</summary>
+    // 360도 방사형 탄막을 발사한다.
     void FireFanBullets()
     {
         if (bulletPrefab == null) return;
@@ -182,7 +164,7 @@ public class ShieldEnemy : EnemyBase
         }
     }
 
-    /// <summary>방패 막기 시 방패가 시안색으로 깜빡임</summary>
+    // 방패로 공격을 막았을 때 방패를 시안색으로 잠깐 깜빡인다.
     IEnumerator ShieldBlockFlash()
     {
         if (shieldTransform == null) yield break;

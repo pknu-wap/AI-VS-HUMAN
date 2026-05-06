@@ -1,9 +1,8 @@
+// 보스의 꽃잎형 탄막 테스트 패턴과 실제 꽃잎 탄환 이동을 담당하는 스크립트
+// PetalBulletPattern은 독립 테스트용 패턴이고, PetalBullet은 BossDrone이 런타임에 붙여 사용한다.
 using System.Collections;
 using UnityEngine;
 
-/// <summary>
-/// 꽃잎(Petal) 탄막 패턴
-/// </summary>
 public class PetalBulletPattern : MonoBehaviour
 {
     [Header("발사 설정")]
@@ -90,9 +89,7 @@ public class PetalBulletPattern : MonoBehaviour
     }
 }
 
-/// <summary>
-/// 개별 탄환 동작
-/// </summary>
+// 개별 꽃잎 탄환의 곡선 이동과 플레이어 충돌을 처리한다.
 public class PetalBullet : MonoBehaviour
 {
     private Vector2 _dir;

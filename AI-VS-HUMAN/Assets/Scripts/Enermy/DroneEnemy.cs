@@ -1,11 +1,8 @@
+// 공중 드론 적의 이동과 탄막 공격을 담당하는 스크립트
+// 플레이어를 감지하면 위쪽으로 호버링하면서 부채꼴 형태의 탄환을 발사한다.
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// 드론 적
-/// - 공중에 떠있으며 플레이어 감지 시 곡선 부채꼴 탄막 발사
-/// - 천천히 플레이어 위쪽으로 호버링
-/// </summary>
 public class DroneEnemy : EnemyBase
 {
     [Header("드론 - 탄막 (곡선 부채꼴)")]
@@ -70,7 +67,7 @@ public class DroneEnemy : EnemyBase
         FacePlayer();
     }
 
-    /// <summary>플레이어 위쪽으로 천천히 이동 + 상하 부유</summary>
+    // 플레이어 위쪽으로 천천히 이동하면서 상하로 부유한다.
     void HoverAbovePlayer()
     {
         // 목표 위치: 플레이어 바로 위
@@ -91,7 +88,7 @@ public class DroneEnemy : EnemyBase
         );
     }
 
-    /// <summary>감지 범위 밖일 때 제자리 부유</summary>
+    // 감지 범위 밖일 때는 제자리에서 가볍게 떠다닌다.
     void IdleHover()
     {
         float bobOffset = Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude;
@@ -108,11 +105,7 @@ public class DroneEnemy : EnemyBase
         spriteRenderer.flipX = player.position.x < transform.position.x;
     }
 
-    /// <summary>
-    /// 곡선 부채꼴 탄막
-    /// 플레이어 방향 기준으로 spreadAngle 만큼 퍼지게 동시 발사
-    /// 각 탄환은 발사 방향 기준으로 좌 또는 우로 휘어서 날아감
-    /// </summary>
+    // 플레이어 방향을 기준으로 spreadAngle만큼 퍼지는 부채꼴 탄막을 동시에 발사한다.
     IEnumerator FireCurveFanPattern()
     {
         if (droneBulletPrefab == null || firePoint == null) yield break;

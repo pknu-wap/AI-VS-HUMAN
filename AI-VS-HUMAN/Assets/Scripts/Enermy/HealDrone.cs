@@ -1,3 +1,5 @@
+// 보스가 소환하는 회복 드론의 이동, 피격, 제한 시간, 사망 처리를 담당하는 스크립트
+// 드론이 제한 시간까지 살아남으면 보스를 회복시키고, 플레이어에게 파괴되면 회복 없이 사라진다.
 using UnityEngine;
 using System.Collections;
 
@@ -45,6 +47,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     public void Init(BossDrone bossRef)
     {
+        // 보스가 런타임에 생성한 뒤 자신을 넘겨주면, 드론은 이 참조로 회복/사망 결과를 알려준다.
         boss = bossRef;
 
         if (groundMask.value == 0)
@@ -98,6 +101,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     void FreeMove()
     {
+        // 기본 이동은 목표 지점으로 이동하면서 상하 부유와 좌우 흔들림을 더한다.
         float bob = Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude;
         float sway = Mathf.Sin(swayTime * swayFrequency) * swayAmplitude * 0.25f;
 
@@ -116,6 +120,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     IEnumerator UMove()
     {
+        // 가끔 U자 모양으로 움직여서 단순 직선 이동보다 예측하기 어렵게 만든다.
         isDoingUMove = true;
 
         Vector3 start = transform.position;
@@ -165,6 +170,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     void PickNewMoveTarget()
     {
+        // 보스 근처를 중심으로 안전한 랜덤 이동 지점을 고른다.
         Vector2 randomOffset = Random.insideUnitCircle * freeMoveRadius;
 
         Vector3 center = basePos;
@@ -218,6 +224,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     Vector3 FindSafeSpawnPosition(Vector3 wantedPos)
     {
+        // 원하는 위치가 벽과 겹치면 주변 방향을 넓혀가며 안전한 위치를 찾는다.
         if (!WouldHitWall(wantedPos) && HasEnoughWallDistance(wantedPos))
             return wantedPos;
 
@@ -295,6 +302,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     IEnumerator Die(bool healBoss)
     {
+        // healBoss가 true면 제한 시간 생존으로 처리되어 보스에게 회복 결과를 전달한다.
         isDead = true;
 
         if (boss != null)

@@ -1,11 +1,8 @@
+// 일반 적들이 공통으로 사용하는 체력, 감지, 피격, 사망 연출을 담당하는 기반 클래스
+// SoldierEnemy, ShieldEnemy, DroneEnemy는 이 클래스를 상속해서 개별 공격 패턴만 구현한다.
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// 모든 적의 공통 기반 클래스
-/// - 피격 시 빨간색 깜빡임
-/// - 사망 시 원래 색 그대로 서서히 투명하게 사라짐
-/// </summary>
 public abstract class EnemyBase : MonoBehaviour, IDamageable
 {
     [Header("기본 스탯")]
@@ -61,7 +58,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         return (player.position - transform.position).normalized;
     }
 
-    /// <summary>IDamageable 구현 - AssaultRifle에서 호출</summary>
+    // IDamageable 구현 - AssaultRifle에서 호출한다.
     public virtual void TakeDamage(float damage)
     {
         if (isDead) return;
@@ -82,9 +79,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         }
     }
 
-    /// <summary>
-    /// 사망 - 깜빡임 즉시 중단 후 원래 색으로 복귀, 서서히 사라짐
-    /// </summary>
+    // 사망 처리 - 깜빡임을 중단하고 콜라이더/물리를 끈 뒤 서서히 사라지게 한다.
     protected virtual void Die()
     {
         isDead = true;
@@ -113,7 +108,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         StartCoroutine(FadeOutAndDestroy());
     }
 
-    /// <summary>원래 색 그대로 서서히 투명해지며 제거</summary>
+    // 원래 색을 유지한 채 알파만 낮춰서 제거한다.
     IEnumerator FadeOutAndDestroy()
     {
         if (spriteRenderer == null)
@@ -137,7 +132,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         Destroy(gameObject);
     }
 
-    /// <summary>피격 시 빨간 깜빡임 (살아있을 때만)</summary>
+    // 피격 시 잠깐 빨간색으로 깜빡인다.
     IEnumerator HitFlash()
     {
         if (spriteRenderer == null) yield break;
