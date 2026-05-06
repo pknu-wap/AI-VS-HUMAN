@@ -1,154 +1,175 @@
-using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// 꽃잎(Petal) 탄막 패턴
-/// </summary>
-public class PetalBulletPattern : MonoBehaviour
-{
-    [Header("발사 설정")]
-    public GameObject bulletPrefab;
-    public Vector2 shootDirection = Vector2.up;
-    public float bulletSpeed = 4f;
-    public int bulletsPerArm = 14;
-    public float fireInterval = 0.07f;
-
-    [Header("곡률 설정")]
-    public float maxCurvature = 1.4f;
-    public float curvatureOscillateSpeed = 1.0f;
-
-    [Header("반복 설정")]
-    public bool loop = true;
-    public float loopDelay = 0.8f;
-
-    private float _time = 0f;
-
-    private void Start()
-    {
-        if (bulletPrefab == null)
-        {
-            Debug.LogWarning("PetalBulletPattern: bulletPrefab이 비어 있어서 패턴을 실행하지 않습니다.", this);
-            enabled = false;
-            return;
-        }
-
-        StartCoroutine(FireLoop());
-    }
-
-    private void Update()
-    {
-        _time += Time.deltaTime;
-    }
-
-    private IEnumerator FireLoop()
-    {
-        while (true)
-        {
-            yield return StartCoroutine(FireOnePetal());
-
-            if (!loop)
-                yield break;
-
-            yield return new WaitForSeconds(loopDelay);
-        }
-    }
-
-    private IEnumerator FireOnePetal()
-    {
-        float curvature = Mathf.Sin(_time * curvatureOscillateSpeed) * maxCurvature;
-
-        for (int b = 0; b < bulletsPerArm; b++)
-        {
-            SpawnBullet(curvature, b);
-            yield return new WaitForSeconds(fireInterval);
-        }
-    }
-
-    private void SpawnBullet(float curvature, int index)
-    {
-        if (bulletPrefab == null)
-            return;
-
-        GameObject go = Instantiate(bulletPrefab, transform.position, Quaternion.identity);
-
-        PetalBullet bullet = go.GetComponent<PetalBullet>();
-        if (bullet == null)
-            bullet = go.AddComponent<PetalBullet>();
-
-        bullet.Init(
-            direction:   shootDirection.normalized,
-            speed:       bulletSpeed,
-            curvature:   curvature,
-            maxLifetime: 2.5f
-        );
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(0.5f, 0.47f, 0.87f, 0.8f);
-        Gizmos.DrawRay(transform.position, (Vector3)shootDirection.normalized * 1.5f);
-    }
-}
-
-/// <summary>
-/// 개별 탄환 동작
+/// 꽃잎 탄환
+/// - 기본 진행 방향으로 날아가면서 좌우로 부드럽게 휘어짐
+/// - 플레이어에게 닿으면 데미지를 주고 삭제
+/// - 벽 또는 바닥에 닿으면 삭제
 /// </summary>
 public class PetalBullet : MonoBehaviour
 {
-    private Vector2 _dir;
-    private Vector2 _perp;
-    private float   _speed;
-    private float   _curvature;
-    private float   _maxLifetime;
-    private float   _age      = 0f;
-    private float   _maxDist  = 15.5f;
-    private Vector2 _startPos;
-    private float   _damage   = 1f;
+    [Header("충돌")]
+    public float damage = 1f;
+    public float hitRadius = 0.2f;
+    public LayerMask playerMask;
+    public LayerMask groundMask;
 
-    private LayerMask _playerMask;
+    [Header("이동")]
+    public float maxDistance = 15.5f;
+    public float waveCount = 1f;
 
-    public void Init(Vector2 direction, float speed, float curvature, float maxLifetime)
+    // ── 내부 변수 ─────────────────────────────
+    private Vector2 startPos;      // 탄환 시작 위치
+    private Vector2 direction;     // 기본 진행 방향
+    private Vector2 perpendicular; // 진행 방향의 수직 방향
+
+    private float speed;           // 이동 속도
+    private float curvature;       // 좌우로 휘어지는 정도
+    private float maxLifetime;     // 최대 생존 시간
+    private float age = 0f;        // 현재 생존 시간
+
+    private bool initialized = false; // Init 호출 여부
+
+    // ── 초기화 ───────────────────────────────
+    void Awake()
     {
-        _dir         = direction.normalized;
-        _perp        = new Vector2(-_dir.y, _dir.x);
-        _speed       = speed;
-        _curvature   = curvature;
-        _maxLifetime = maxLifetime;
-        _startPos    = transform.position;
-        _playerMask  = LayerMask.GetMask("Player");
-        _age         = 0f;
+        if (playerMask.value == 0)
+            playerMask = LayerMask.GetMask("Player");
+
+        if (groundMask.value == 0)
+            groundMask = LayerMask.GetMask("Ground");
+
+        Collider2D col = GetComponent<Collider2D>();
+        if (col != null)
+            col.isTrigger = true;
+
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb == null)
+            rb = gameObject.AddComponent<Rigidbody2D>();
+
+        rb.gravityScale = 0f;
+        rb.bodyType = RigidbodyType2D.Kinematic;
+    }
+
+    /// <summary>
+    /// 보스가 탄환을 생성한 직후 호출하는 초기화 함수
+    /// direction: 탄환 진행 방향
+    /// speed: 탄환 속도
+    /// curvature: 휘어지는 정도
+    /// maxLifetime: 생존 시간
+    /// spawnOffset: 보스 몸에서 떨어져 생성되는 거리
+    /// </summary>
+    public void Init(Vector2 direction, float speed, float curvature, float maxLifetime, float spawnOffset = 1.5f)
+    {
+        this.direction = direction.normalized;
+        this.perpendicular = new Vector2(-this.direction.y, this.direction.x);
+
+        this.speed = speed;
+        this.curvature = curvature;
+        this.maxLifetime = maxLifetime;
+
+        age = 0f;
+        initialized = true;
+
+        startPos = (Vector2)transform.position + this.direction * spawnOffset;
+        transform.position = startPos;
+
+        RotateToMoveDirection(this.direction);
 
         Destroy(gameObject, maxLifetime);
     }
 
-    private void Update()
+    // ── 이동 / 충돌 ───────────────────────────
+    void Update()
     {
-        _age += Time.deltaTime;
+        if (!initialized) return;
 
-        float progress = _age * _speed;
-        float t        = progress / _maxDist;
+        age += Time.deltaTime;
 
-        if (t > 1f)
+        float progress = age * speed;
+        float t = progress / maxDistance;
+
+        if (age >= maxLifetime || t >= 1f)
         {
             Destroy(gameObject);
             return;
         }
 
-        float   bulge  = Mathf.Sin(t * Mathf.PI) * _curvature;
-        Vector2 newPos = _startPos
-                       + _dir  * progress
-                       + _perp * bulge;
+        float wave = Mathf.Sin(t * Mathf.PI * waveCount);
 
-        transform.position = newPos;
+        Vector2 currentPos = transform.position;
 
-        Collider2D hit = Physics2D.OverlapCircle(newPos, 0.2f, _playerMask);
-        if (hit != null)
+        Vector2 nextPos = startPos
+                        + direction * progress
+                        + perpendicular * wave * curvature;
+
+        Vector2 moveDir = nextPos - currentPos;
+
+        transform.position = nextPos;
+
+        if (moveDir.sqrMagnitude > 0.001f)
+            RotateToMoveDirection(moveDir.normalized);
+
+        CheckHit(nextPos);
+    }
+
+    void CheckHit(Vector2 position)
+    {
+        // 플레이어 충돌 검사
+        Collider2D playerHit = Physics2D.OverlapCircle(position, hitRadius, playerMask);
+        if (playerHit != null)
         {
-            PlayerHealth ph = hit.GetComponent<PlayerHealth>();
-            if (ph != null)
-                ph.TakeDamage(1);
+            PlayerHealth playerHealth = playerHit.GetComponent<PlayerHealth>();
+            if (playerHealth == null)
+                playerHealth = playerHit.GetComponentInParent<PlayerHealth>();
+
+            if (playerHealth != null)
+                playerHealth.TakeDamage(Mathf.RoundToInt(damage));
 
             Destroy(gameObject);
+            return;
         }
+
+        // 벽 / 바닥 충돌 검사
+        Collider2D groundHit = Physics2D.OverlapCircle(position, hitRadius, groundMask);
+        if (groundHit != null)
+            Destroy(gameObject);
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (!initialized) return;
+
+        // 플레이어와 닿으면 데미지
+        if (((1 << other.gameObject.layer) & playerMask) != 0)
+        {
+            PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+            if (playerHealth == null)
+                playerHealth = other.GetComponentInParent<PlayerHealth>();
+
+            if (playerHealth != null)
+                playerHealth.TakeDamage(Mathf.RoundToInt(damage));
+
+            Destroy(gameObject);
+            return;
+        }
+
+        // 벽 / 바닥에 닿으면 삭제
+        if (((1 << other.gameObject.layer) & groundMask) != 0)
+            Destroy(gameObject);
+    }
+
+    // ── 보조 함수 ─────────────────────────────
+    void RotateToMoveDirection(Vector2 moveDirection)
+    {
+        float angle = Mathf.Atan2(moveDirection.y, moveDirection.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.Euler(0f, 0f, angle);
+    }
+
+    // ── 에디터 시각화 ─────────────────────────
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, hitRadius);
     }
 }
