@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(InputController))]
 public class PlayerMove : MonoBehaviour
 {
     [Header("Movement Settings")]
@@ -17,7 +19,6 @@ public class PlayerMove : MonoBehaviour
     private Coroutine _dashCoroutine;
 
     [Header("Ground Check")]
-    [SerializeField] private float _rayDistance = 0.6f;
     [SerializeField] private LayerMask _groundLayer;
     [SerializeField] private int _maxJumpCount = 2;
     [SerializeField] private float _groundCheckRadius = 0.2f;  // 발 감지 원 크기
@@ -37,6 +38,13 @@ public class PlayerMove : MonoBehaviour
         _input         = GetComponent<InputController>();
         _rigid         = GetComponent<Rigidbody2D>();
         _dashKnockback = GetComponent<PlayerDashKnockback>();
+
+        if (_input == null || _rigid == null)
+        {
+            Debug.LogError("PlayerMove needs Rigidbody2D and InputController on the same GameObject.", this);
+            enabled = false;
+            return;
+        }
 
         _input.OnMoveEvent += HandleMove;
         _input.OnJumpEvent += HandleJump;

@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 2477014298502648274}
   - component: {fileID: 8782672133758667673}
   - component: {fileID: 4995014266369625275}
-  - component: {fileID: 6448960435037074285}
   m_Layer: 3
   m_Name: DronEnemy
   m_TagString: Enemy
@@ -195,21 +194,6 @@ MonoBehaviour:
   hoverSpeed: 1.5
   hoverAmplitude: 0.4
   hoverFrequency: 1.5
---- !u!114 &6448960435037074285
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2655023642777375728}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 265d21a09342be34d93b3745e77765dd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CurveBullet
-  damage: 1
-  speed: 4
-  lifetime: 4
 --- !u!1 &4011772929112121827
 GameObject:
   m_ObjectHideFlags: 0

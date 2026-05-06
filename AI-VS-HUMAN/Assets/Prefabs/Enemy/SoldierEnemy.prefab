@@ -182,7 +182,7 @@ MonoBehaviour:
     m_Bits: 0
   deathEffect: {fileID: 0}
   hitEffect: {fileID: 0}
-  bulletPrefab: {fileID: 0}
+  bulletPrefab: {fileID: 8328549674659963371, guid: fc60a2c9fda50a9418bbd5805937d41d, type: 3}
   firePoint: {fileID: 1752912040473982514}
   bulletDamage: 1
   bulletSpeed: 8

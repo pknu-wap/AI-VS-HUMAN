@@ -4,6 +4,8 @@ using UnityEngine.InputSystem;
 
 public class InputController : MonoBehaviour
 {
+    private Camera mainCamera;
+
     public event Action<float> OnMoveEvent;
     public event Action OnJumpEvent;
     public event Action OnDashEvent;
@@ -11,6 +13,11 @@ public class InputController : MonoBehaviour
     public event Action<Vector2> OnFireEvent;
     public event Action<Vector2> OnFireStartEvent; // ✅ 추가
     public event Action<Vector2> OnFireEndEvent;   // ✅ 추가
+
+    private void Awake()
+    {
+        mainCamera = Camera.main;
+    }
 
     private void OnMove(InputValue value)
     {
@@ -34,7 +41,16 @@ public class InputController : MonoBehaviour
 
     private void OnFire(InputValue value)
     {
-        Vector2 mouseWorldPos = Camera.main.ScreenToWorldPoint(
+        if (Mouse.current == null)
+            return;
+
+        if (mainCamera == null)
+            mainCamera = Camera.main;
+
+        if (mainCamera == null)
+            return;
+
+        Vector2 mouseWorldPos = mainCamera.ScreenToWorldPoint(
             Mouse.current.position.ReadValue());
 
         if (value.isPressed)
