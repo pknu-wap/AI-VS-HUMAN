@@ -6677,13 +6677,13 @@ GameObject:
   - component: {fileID: 1436086872}
   - component: {fileID: 1436086871}
   - component: {fileID: 1436086873}
-  - component: {fileID: 1436086878}
   - component: {fileID: 1436086877}
   - component: {fileID: 1436086876}
   - component: {fileID: 1436086875}
   - component: {fileID: 1436086874}
   - component: {fileID: 1436086879}
   - component: {fileID: 1436086880}
+  - component: {fileID: 1436086881}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -6966,6 +6966,52 @@ MonoBehaviour:
   _bulletLength: 0.3
   _maxBullets: 10
   _bulletLifetime: 0.5
+--- !u!61 &1436086881
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1436086870}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1, y: 1}
+    newSize: {x: 1, y: 1}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 1, y: 1}
+  m_EdgeRadius: 0
 --- !u!4 &1518217123 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1687378342772749748, guid: 51a74a5a7da3c204bb17263b947d1855, type: 3}
@@ -6994,34 +7040,38 @@ MonoBehaviour:
   keepInsideCameraView: 1
   cameraEdgePadding: 0.5
   moveSpeed: 3
-  keepDistanceX: 6
   keepDistanceY: 6
   hoverAmplitude: 0.4
   hoverFrequency: 1.2
   swaySpeed: 3
   swayAmplitude: 3
+  wallCheckDistance: 2
+  wallKeepDistance: 2
+  wallAvoidSpeed: 5
+  wallSlidePower: 0.75
   dashSpeed: 8
   dashDropY: 6
   dashWidth: 18
-  wallAvoidDistance: 1.2
-  wallSafeDistance: 1.2
-  wallAvoidSpeed: 4
-  wallCheckRadius: 0.45
   fanBulletPrefab: {fileID: 6266731588553231476, guid: 64b914941055fd746bcd232dfb6eef92, type: 3}
-  fanBulletCount: 12
+  fanBulletCount: 8
   fanSpreadAngle: 150
-  fanBulletSpeed: 6
+  fanBulletSpeed: 4
   fanBulletDamage: 1
   fanCooldown: 4
+  fanDashVolleyCount: 4
+  fanDashStartT: 0.45
+  fanDashEndT: 0.8
+  fanFireOffset: 0.8
   petalBulletPrefab: {fileID: 4171571264473808390, guid: 1cc151875f93ab949919dca1bfb75161, type: 3}
-  petalArmCount: 6
-  petalBulletsPerArm: 10
-  petalBulletSpeed: 9
-  petalFireInterval: 0.25
-  petalMaxCurvature: 1.4
-  petalCurvatureSpeed: 3
+  petalArmCount: 8
+  petalBulletsPerArm: 6
+  petalBulletSpeed: 6
+  petalFireInterval: 0.4
+  petalCurvature: 1.2
+  petalRotatePerShot: 8
+  petalSpawnOffset: 1.5
   petalLoopDelay: 3
-  hpBarColor: {r: 0.9, g: 0.1, b: 0.1, a: 1}
+  petalMoveSpeedMultiplier: 0.45
   healDronePrefab: {fileID: 5305686523954001029, guid: 9349afcae9cfee34ca0ed0724a6f8eb4, type: 3}
   healDroneCount: 2
   healDroneTimer: 30
@@ -7030,6 +7080,7 @@ MonoBehaviour:
   healAmount: 300
   healDroneOffsetX: 3
   healDroneOffsetY: -1
+  hpBarColor: {r: 0.9, g: 0.1, b: 0.1, a: 1}
 --- !u!50 &1569403237
 Rigidbody2D:
   serializedVersion: 5
@@ -7386,6 +7437,10 @@ PrefabInstance:
     - target: {fileID: 3556424095073368702, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
       propertyPath: m_Name
       value: Boss_drone
+      objectReference: {fileID: 0}
+    - target: {fileID: 3556424095073368702, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3556424095073368702, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
       propertyPath: m_TagString
