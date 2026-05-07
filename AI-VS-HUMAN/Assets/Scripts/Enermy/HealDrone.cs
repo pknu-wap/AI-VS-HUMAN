@@ -1,119 +1,188 @@
-// 보스가 소환하는 회복 드론의 이동, 피격, 제한 시간, 사망 처리를 담당하는 스크립트
-// 드론이 제한 시간까지 살아남으면 보스를 회복시키고, 플레이어에게 파괴되면 회복 없이 사라진다.
+// 보스 회복 패턴에서 화면 밖에서 날아와 보스에게 붙는 미니 드론을 담당하는 스크립트
+// 보스에게 닿기 전에 파괴되면 회복하지 않고, 보스에게 붙으면 계속 회복시키다가 체력이 다하면 사라진다.
 using UnityEngine;
 using System.Collections;
 
 public class HealDrone : MonoBehaviour, IDamageable
 {
-    [Header("스탯")]
-    public float maxHp        = 50f;
-    public float fadeDuration = 1f;
+    [Header("체력")]
+    public float maxHp = 50f;
+    public float fadeDuration = 0.6f;
+    public float lifeDrainPerSecond = 10f;
 
     [Header("이동")]
-    public float hoverAmplitude = 0.4f;  // 상하 부유 크기
-    public float hoverFrequency = 1.5f;  // 상하 부유 속도
-    public float swayAmplitude  = 1.5f;  // 좌우 흔들기 크기
-    public float swayFrequency  = 0.8f;  // 좌우 흔들기 속도
-    public float swaySpeed      = 2f;    // 좌우 이동 속도
+    public float moveSpeed = 6f;
+    public float hoverAmplitude = 0.25f;
+    public float hoverFrequency = 6f;
+    public float attachDistance = 0.45f;
 
-    private float      currentHp;
-    private bool       isDead    = false;
-    private BossDrone  boss;
-    private Vector3    basePos;
-    private float      hoverTime = 0f;
-    private float      swayTime  = 0f;
-    private SpriteRenderer     sr;
-    private Coroutine  hitFlashCoroutine;
+    private float currentHp;
+    private float side = 1f;
+    private float hoverTime;
+    private bool isDead;
+    private bool isAttached;
+    private BossDrone boss;
+    private SpriteRenderer spriteRenderer;
+    private Collider2D droneCollider;
+    private Rigidbody2D rb;
+    private Coroutine hitFlashCoroutine;
+    private Color originalColor = Color.white;
 
-    private Color originalColor;
-
-    public void Init(BossDrone bossRef)
+    public void Init(BossDrone bossRef, float spawnSide)
     {
-        boss          = bossRef;
-        basePos       = transform.position;
-        currentHp     = maxHp;
-        sr            = GetComponent<SpriteRenderer>();
-        originalColor = sr != null ? sr.color : Color.white;
-    }
+        // 보스 기준 좌우 어느 쪽에 붙을지 저장하고, 재소환 때마다 런타임 상태를 초기화한다.
+        boss = bossRef;
+        side = Mathf.Sign(spawnSide);
+        if (Mathf.Approximately(side, 0f))
+            side = 1f;
 
-    void Awake()
-    {
         currentHp = maxHp;
-        sr        = GetComponent<SpriteRenderer>();
-        originalColor = sr != null ? sr.color : Color.white;
+        hoverTime = 0f;
+        isDead = false;
+        isAttached = false;
+
+        CacheComponents();
+        ConfigurePhysics();
     }
 
-    void Start() { }
-
-    void Update()
+    private void Awake()
     {
-        if (isDead) return;
+        CacheComponents();
+        ConfigurePhysics();
+        currentHp = maxHp;
+    }
+
+    private void Update()
+    {
+        if (isDead || boss == null)
+            return;
+
+        if (isAttached)
+        {
+            transform.position = boss.GetHealDroneAttachPosition(side);
+            boss.HealFromAttachedDrone(Time.deltaTime);
+            DrainLifeOverTime();
+            return;
+        }
 
         hoverTime += Time.deltaTime;
-        swayTime  += Time.deltaTime;
+        Vector3 targetPosition = boss.GetHealDroneAttachPosition(side);
+        Vector3 bobOffset = Vector3.up * (Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude);
+        Vector3 nextPosition = Vector3.MoveTowards(transform.position, targetPosition + bobOffset, moveSpeed * Time.deltaTime);
+        transform.position = nextPosition;
 
-        // 상하 sin 부유
-        float bob  = Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude;
+        if (spriteRenderer != null)
+            spriteRenderer.flipX = side < 0f;
 
-        // 좌우 sin 흔들기 (swayAmplitude 범위 안에서 왔다갔다)
-        float swayX = Mathf.Sin(swayTime * swayFrequency) * swayAmplitude;
-
-        transform.position = new Vector3(
-            basePos.x + swayX,
-            basePos.y + bob,
-            0f
-        );
+        if (Vector2.Distance(transform.position, targetPosition) <= attachDistance)
+            AttachToBoss();
     }
 
     public void TakeDamage(float damage)
     {
-        if (isDead) return;
+        if (isDead)
+            return;
 
         currentHp -= damage;
 
-        if (hitFlashCoroutine != null) StopCoroutine(hitFlashCoroutine);
-        hitFlashCoroutine = StartCoroutine(HitFlash());
-
         if (currentHp <= 0f)
-            StartCoroutine(Die(false));
+        {
+            StartCoroutine(Die(true));
+            return;
+        }
+
+        if (hitFlashCoroutine != null)
+            StopCoroutine(hitFlashCoroutine);
+        hitFlashCoroutine = StartCoroutine(HitFlash());
     }
 
-    public void OnTimerExpired()
+    private void AttachToBoss()
     {
-        if (isDead) return;
-        StartCoroutine(Die(true));
+        // 보스에게 붙은 뒤에도 콜라이더를 유지해서 플레이어 총알로 파괴할 수 있게 한다.
+        if (isDead || isAttached)
+            return;
+
+        isAttached = true;
+
+        if (rb != null)
+            rb.linearVelocity = Vector2.zero;
+
+        transform.position = boss.GetHealDroneAttachPosition(side);
     }
 
-    IEnumerator HitFlash()
+    private void DrainLifeOverTime()
     {
-        if (sr == null) yield break;
-        sr.color = Color.red;
+        // 보스에 붙어 회복하는 동안 드론 자체의 체력이 서서히 줄어, 플레이어가 쏘지 않아도 결국 사라진다.
+        currentHp -= lifeDrainPerSecond * Time.deltaTime;
+        if (currentHp <= 0f)
+            StartCoroutine(Die(true));
+    }
+
+    private IEnumerator HitFlash()
+    {
+        if (spriteRenderer == null)
+            yield break;
+
+        spriteRenderer.color = Color.red;
         yield return new WaitForSeconds(0.1f);
-        if (!isDead) sr.color = originalColor;
+
+        if (!isDead && spriteRenderer != null)
+            spriteRenderer.color = originalColor;
+
         hitFlashCoroutine = null;
     }
 
-    IEnumerator Die(bool healBoss)
+    private IEnumerator Die(bool notifyBoss)
     {
-        // healBoss가 true면 제한 시간 생존으로 처리되어 보스에게 회복 결과를 전달한다.
         isDead = true;
 
-        if (boss != null)
-            boss.OnHealDroneDestroyed(healBoss);
+        if (notifyBoss && boss != null)
+            boss.OnHealDroneDestroyed();
 
-        Collider2D col = GetComponent<Collider2D>();
-        if (col != null) col.enabled = false;
+        if (droneCollider != null)
+            droneCollider.enabled = false;
 
+        Color startColor = spriteRenderer != null ? spriteRenderer.color : originalColor;
         float elapsed = 0f;
         while (elapsed < fadeDuration)
         {
             elapsed += Time.deltaTime;
-            float a = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
-            if (sr != null)
-                sr.color = new Color(1f, 1f, 1f, a);
+            float alpha = Mathf.Lerp(startColor.a, 0f, elapsed / fadeDuration);
+            if (spriteRenderer != null)
+                spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
             yield return null;
         }
 
         Destroy(gameObject);
+    }
+
+    private void CacheComponents()
+    {
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
+
+        if (spriteRenderer != null)
+            originalColor = spriteRenderer.color;
+
+        if (droneCollider == null)
+            droneCollider = GetComponent<Collider2D>();
+
+        if (rb == null)
+            rb = GetComponent<Rigidbody2D>();
+    }
+
+    private void ConfigurePhysics()
+    {
+        // Transform 기반 추적 이동을 쓰므로 물리 엔진이 드론을 아래로 떨어뜨리거나 벽에 밀어넣지 않게 고정한다.
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.gravityScale = 0f;
+            rb.bodyType = RigidbodyType2D.Kinematic;
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        }
+
+        if (droneCollider != null)
+            droneCollider.isTrigger = true;
     }
 }

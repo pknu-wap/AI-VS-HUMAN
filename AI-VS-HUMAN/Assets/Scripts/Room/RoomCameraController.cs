@@ -78,6 +78,25 @@ public class RoomCameraController : MonoBehaviour
         }
     }
 
+    public void ResetToPlayerRoom()
+    {
+        // 리스폰처럼 플레이어 위치가 크게 바뀐 경우 현재 방과 카메라 위치를 즉시 다시 맞춥니다.
+        if (player == null)
+            return;
+
+        StopAllCoroutines();
+        isTransitioning = false;
+        allRooms = FindObjectsByType<Room>(FindObjectsSortMode.None);
+        currentRoom = GetRoomContaining(player.position);
+
+        if (currentRoom == null)
+            return;
+
+        transform.position = currentRoom.nX > camSizeController.n || currentRoom.nY > camSizeController.n
+            ? GetClampedPosition(currentRoom)
+            : currentRoom.transform.position + cameraOffset;
+    }
+
     private Room GetRoomContaining(Vector3 position)
     {
         if (allRooms == null) return null;

@@ -25,7 +25,7 @@ public class BossDrone : MonoBehaviour, IDamageable
     public float detectionRange = 25f;
 
     [Header("Camera Bounds")]
-    public bool keepInsideCameraView = true;
+    public bool keepInsideCameraView = false;
     public float cameraEdgePadding = 0.5f;
 
     [Header("이동")]
@@ -44,6 +44,10 @@ public class BossDrone : MonoBehaviour, IDamageable
     public float wallAvoidDistance = 1.8f;
     public float wallAvoidSpeed = 5f;
     public float wallCheckRadius = 0.45f;
+    public float wallStopPadding = 0.2f;
+    public float wallUnstuckPadding = 0.05f;
+    public float wallSafeStepDistance = 0.2f;
+    public int wallResolveIterations = 4;
 
     [Header("부채꼴 탄막")]
     public GameObject fanBulletPrefab;
@@ -76,12 +80,13 @@ public class BossDrone : MonoBehaviour, IDamageable
     [Header("힐링 드론")]
     public GameObject healDronePrefab;
     public int healDroneCount = 2;
-    public float healDroneTimer = 30f;
-    public float healDroneFirstDelay = 30f;
-    public float healDroneRepeatDelay = 30f;
-    public float healAmount           = 300f;
-    public float healDroneOffsetX     = 3f;
-    public float healDroneOffsetY     = -1f;
+    public float healDroneFirstDelay = 3f;
+    public float healDroneRepeatDelay = 20f;
+    public float healAmount = 30f; // 붙어 있는 회복 드론 1마리당 초당 회복량
+    public float healDroneOffsetX = 3f;
+    public float healDroneOffsetY = -1f;
+    public float healDroneSpawnOutsidePadding = 2f;
+    public float healDronePatternMinDuration = 5f;
 
     private int   healDroneAliveCount = 0;
 
@@ -103,7 +108,12 @@ public class BossDrone : MonoBehaviour, IDamageable
     private Coroutine      hitFlashCoroutine;
     private Slider         hpSlider;
     private Canvas         bossCanvas;
+    private Canvas         clearCanvas;
     private Color          originalColor;
+    private bool           hasOriginalColor;
+    private readonly Collider2D[] wallOverlapHits = new Collider2D[8];
+    private readonly RaycastHit2D[] wallCastHits = new RaycastHit2D[8];
+    private Vector3        lastSafePosition;
 
     void Start()
     {
@@ -112,21 +122,11 @@ public class BossDrone : MonoBehaviour, IDamageable
 
         currentHp      = maxHp;
         halfHealthNotified = currentHp <= maxHp * 0.5f;
-        spriteRenderer = GetComponent<SpriteRenderer>();
-        bossCollider = GetComponent<Collider2D>();
+        CacheComponents();
+        ConfigureRigidbody();
         mainCamera = Camera.main;
         baseY = transform.position.y;
-
-        rb = GetComponent<Rigidbody2D>();
-        bossCollider = GetComponent<Collider2D>();
-        originalColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
-
-        if (rb != null)
-        {
-            rb.gravityScale = 0f;
-            rb.bodyType = RigidbodyType2D.Kinematic;
-            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
-        }
+        lastSafePosition = transform.position;
 
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
@@ -136,6 +136,159 @@ public class BossDrone : MonoBehaviour, IDamageable
         UpdateHpBar();
 
         if (bossCanvas != null) bossCanvas.gameObject.SetActive(false);
+    }
+
+    public void PrepareForBossRoomSpawn(Vector3 spawnPosition, Camera bossRoomCamera = null)
+    {
+        // 비활성화된 씬 보스를 입장 순간 켜면 Start보다 먼저 체력 체크가 일어날 수 있으므로, 소환 직후 필요한 상태를 즉시 맞춘다.
+        CacheComponents();
+        ConfigureRigidbody();
+        MoveVisualCenterTo(spawnPosition);
+        keepInsideCameraView = false;
+        currentHp = maxHp;
+        halfHealthNotified = false;
+        isDead = false;
+        isActive = false;
+        isDoingUDash = false;
+        isDoingPetal = false;
+        healDroneAliveCount = 0;
+        hoverTime = 0f;
+        swayTime = 0f;
+        swayBaseX = transform.position.x;
+        baseY = transform.position.y;
+        lastSafePosition = transform.position;
+        mainCamera = bossRoomCamera != null ? bossRoomCamera : Camera.main;
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.enabled = true;
+            spriteRenderer.color = originalColor;
+        }
+
+        if (player == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+                player = playerObj.transform;
+        }
+
+        DestroyClearCanvas();
+
+        if (bossCanvas == null)
+            CreateHpBarUI();
+
+        UpdateHpBar();
+
+        if (bossCanvas != null)
+            bossCanvas.gameObject.SetActive(false);
+    }
+
+    public void ResetForBossRoomRetry()
+    {
+        // 플레이어가 죽어 보스전을 다시 시작해야 할 때 보스의 런타임 상태와 UI를 입장 전 상태로 되돌립니다.
+        StopAllCoroutines();
+        ClearExistingHealDrones();
+
+        currentHp = maxHp;
+        halfHealthNotified = false;
+        isDead = false;
+        isActive = false;
+        isDoingUDash = false;
+        isDoingPetal = false;
+        healDroneAliveCount = 0;
+        hoverTime = 0f;
+        swayTime = 0f;
+        petalBaseAngle = 0f;
+
+        if (hitFlashCoroutine != null)
+            hitFlashCoroutine = null;
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.enabled = true;
+            spriteRenderer.color = originalColor;
+        }
+
+        if (bossCollider != null)
+            bossCollider.enabled = true;
+
+        ConfigureRigidbody();
+        DestroyBossCanvas();
+        DestroyClearCanvas();
+    }
+
+    public void FollowBossRoomCamera(Camera bossRoomCamera, float cameraYOffset, float followSpeed)
+    {
+        // 2페이즈에서 카메라가 위로 올라갈 때 보스의 기준 높이도 함께 올려 화면 안에 머물게 한다.
+        if (isDead || bossRoomCamera == null)
+            return;
+
+        mainCamera = bossRoomCamera;
+        baseY = bossRoomCamera.transform.position.y + cameraYOffset;
+
+        if (isDoingUDash)
+            return;
+
+        float targetY = baseY + Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude;
+        float nextY = Mathf.MoveTowards(transform.position.y, targetY, Mathf.Max(0f, followSpeed) * Time.deltaTime);
+        Vector3 nextPosition = new Vector3(transform.position.x, nextY, transform.position.z);
+
+        MoveToSafePosition(nextPosition, LayerMask.GetMask("Ground"));
+    }
+
+    private void CacheComponents()
+    {
+        // 비활성화 상태에서 다시 켜질 때도 소환 보정에 필요한 컴포넌트를 즉시 확보한다.
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
+
+        if (spriteRenderer != null && !hasOriginalColor)
+        {
+            originalColor = spriteRenderer.color;
+            hasOriginalColor = true;
+        }
+
+        if (bossCollider == null)
+            bossCollider = GetComponent<Collider2D>();
+
+        if (rb == null)
+            rb = GetComponent<Rigidbody2D>();
+    }
+
+    private void ConfigureRigidbody()
+    {
+        // 소환 직후 물리엔진이 보스를 벽이나 바닥 쪽으로 밀지 않도록 보스는 직접 이동 방식에 맞춰 Kinematic으로 고정한다.
+        if (rb == null)
+            return;
+
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.gravityScale = 0f;
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+    }
+
+    private void MoveVisualCenterTo(Vector3 centerPosition)
+    {
+        // Transform 피벗이 스프라이트 중심과 달라도, 인스펙터의 소환 좌표가 보스의 실제 중심으로 작동하게 한다.
+        transform.position = centerPosition;
+        Physics2D.SyncTransforms();
+
+        Vector3 visualCenter = GetBossVisualCenter();
+        Vector3 offset = visualCenter - transform.position;
+        transform.position -= offset;
+        Physics2D.SyncTransforms();
+    }
+
+    private Vector3 GetBossVisualCenter()
+    {
+        if (bossCollider != null)
+            return bossCollider.bounds.center;
+
+        if (spriteRenderer != null)
+            return spriteRenderer.bounds.center;
+
+        return transform.position;
     }
 
     void ClearExistingHealDrones()
@@ -184,9 +337,7 @@ public class BossDrone : MonoBehaviour, IDamageable
         LayerMask groundMask = LayerMask.GetMask("Ground");
         Vector3 nextPosition = new Vector3(newX, newY, 0f);
 
-        nextPosition = GetSafePosition(nextPosition, groundMask);
-
-        transform.position = nextPosition;
+        MoveToSafePosition(nextPosition, groundMask);
     }
 
     void LateUpdate()
@@ -232,6 +383,226 @@ public class BossDrone : MonoBehaviour, IDamageable
         return wantedPosition;
     }
 
+    private bool MoveToSafePosition(Vector3 wantedPosition, LayerMask wallMask)
+    {
+        // Transform 직접 이동과 물리 쿼리가 어긋나지 않도록 현재 위치를 물리 월드에 먼저 반영한다.
+        Physics2D.SyncTransforms();
+
+        if (IsOverlappingWall(wallMask))
+        {
+            bool escaped = ResolveCurrentWallOverlap(wallMask);
+            Physics2D.SyncTransforms();
+
+            if (!escaped || IsOverlappingWall(wallMask))
+            {
+                transform.position = lastSafePosition;
+                Physics2D.SyncTransforms();
+                return false;
+            }
+        }
+
+        Vector3 startPosition = transform.position;
+        float moveDistance = Vector2.Distance(startPosition, wantedPosition);
+        float stepDistance = Mathf.Max(0.05f, wallSafeStepDistance);
+        int stepCount = Mathf.Max(1, Mathf.CeilToInt(moveDistance / stepDistance));
+
+        for (int i = 1; i <= stepCount; i++)
+        {
+            Vector3 stepTarget = Vector3.Lerp(startPosition, wantedPosition, i / (float)stepCount);
+            Vector3 safePosition = GetWallLimitedPosition(stepTarget, wallMask);
+            bool reachedStepTarget = ((Vector2)safePosition - (Vector2)stepTarget).sqrMagnitude < 0.001f;
+
+            transform.position = safePosition;
+            Physics2D.SyncTransforms();
+
+            bool wasUnstuck = ResolveCurrentWallOverlap(wallMask);
+            if (wasUnstuck)
+                Physics2D.SyncTransforms();
+
+            if (IsOverlappingWall(wallMask))
+            {
+                transform.position = lastSafePosition;
+                Physics2D.SyncTransforms();
+                return false;
+            }
+
+            lastSafePosition = transform.position;
+            swayBaseX = transform.position.x;
+
+            if (!reachedStepTarget || wasUnstuck)
+                return false;
+        }
+
+        return true;
+    }
+
+    private Vector3 GetWallLimitedPosition(Vector3 wantedPosition, LayerMask wallMask)
+    {
+        // 실제 보스 Collider2D를 Cast해서 복잡한 콜라이더/코너에서도 벽에 닿기 직전에 멈춘다.
+        Vector2 move = (Vector2)wantedPosition - (Vector2)transform.position;
+        float distance = move.magnitude;
+
+        if (distance <= 0.001f)
+            return GetOverlapSafePosition(wantedPosition, wallMask);
+
+        Vector2 direction = move / distance;
+        RaycastHit2D wallHit = GetNearestWallCastHit(direction, distance + wallStopPadding, wallMask);
+
+        if (wallHit.collider != null)
+        {
+            float safeDistance = Mathf.Max(0f, wallHit.distance - wallStopPadding);
+            Vector3 blockedPosition = transform.position + (Vector3)(direction * safeDistance);
+            blockedPosition.z = wantedPosition.z;
+            return GetOverlapSafePosition(blockedPosition, wallMask);
+        }
+
+        return GetOverlapSafePosition(wantedPosition, wallMask);
+    }
+
+    private RaycastHit2D GetNearestWallCastHit(Vector2 direction, float distance, LayerMask wallMask)
+    {
+        if (bossCollider == null)
+            return Physics2D.BoxCast(GetBossColliderCenter(), GetBossCastSize(), 0f, direction, distance, wallMask);
+
+        ContactFilter2D wallFilter = new ContactFilter2D();
+        wallFilter.SetLayerMask(wallMask);
+        wallFilter.useTriggers = false;
+
+        int hitCount = bossCollider.Cast(direction, wallFilter, wallCastHits, distance);
+        RaycastHit2D nearestHit = default;
+        float nearestDistance = float.PositiveInfinity;
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit2D hit = wallCastHits[i];
+            if (hit.collider == null || hit.collider == bossCollider)
+                continue;
+
+            if (hit.distance < nearestDistance)
+            {
+                nearestDistance = hit.distance;
+                nearestHit = hit;
+            }
+        }
+
+        return nearestHit;
+    }
+
+    private Vector3 GetOverlapSafePosition(Vector3 wantedPosition, LayerMask wallMask)
+    {
+        Vector2 safeCenter = (Vector2)wantedPosition + GetBossColliderCenterOffset();
+        Vector2 paddedSize = GetBossCastSize() + Vector2.one * (wallStopPadding * 2f);
+
+        // 최종 위치에서 히트박스가 벽과 겹치면 이전에 검증된 안전 위치로 되돌려 벽 안에서 멈추지 않게 한다.
+        if (Physics2D.OverlapBox(safeCenter, paddedSize, 0f, wallMask) != null)
+            return lastSafePosition;
+
+        return wantedPosition;
+    }
+
+    private bool IsOverlappingWall(LayerMask wallMask)
+    {
+        if (bossCollider == null)
+            return false;
+
+        ContactFilter2D wallFilter = new ContactFilter2D();
+        wallFilter.SetLayerMask(wallMask);
+        wallFilter.useTriggers = false;
+
+        int hitCount = bossCollider.Overlap(wallFilter, wallOverlapHits);
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider2D wallCollider = wallOverlapHits[i];
+            if (wallCollider != null && wallCollider != bossCollider)
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool ResolveCurrentWallOverlap(LayerMask wallMask)
+    {
+        if (bossCollider == null)
+            return false;
+
+        ContactFilter2D wallFilter = new ContactFilter2D();
+        wallFilter.SetLayerMask(wallMask);
+        wallFilter.useTriggers = false;
+        bool moved = false;
+
+        for (int iteration = 0; iteration < Mathf.Max(1, wallResolveIterations); iteration++)
+        {
+            int hitCount = bossCollider.Overlap(wallFilter, wallOverlapHits);
+            Vector2 bestCorrection = Vector2.zero;
+            float bestCorrectionMagnitude = 0f;
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider2D wallCollider = wallOverlapHits[i];
+                if (wallCollider == null || wallCollider == bossCollider)
+                    continue;
+
+                ColliderDistance2D distance = bossCollider.Distance(wallCollider);
+                if (!distance.isOverlapped)
+                    continue;
+
+                // distance.normal은 보스 콜라이더에서 벽 콜라이더를 향한다. 음수 distance와 함께 쓰면 벽 바깥 방향 보정값이 된다.
+                Vector2 correction = distance.normal * (distance.distance - Mathf.Max(0.01f, wallUnstuckPadding));
+                float correctionMagnitude = correction.sqrMagnitude;
+                if (correctionMagnitude > bestCorrectionMagnitude)
+                {
+                    bestCorrectionMagnitude = correctionMagnitude;
+                    bestCorrection = correction;
+                }
+            }
+
+            if (bestCorrectionMagnitude <= 0.0001f)
+                break;
+
+            transform.position += (Vector3)bestCorrection;
+            Physics2D.SyncTransforms();
+            moved = true;
+        }
+
+        if (moved)
+            swayBaseX = transform.position.x;
+
+        return moved;
+    }
+
+    private Vector2 GetBossColliderCenter()
+    {
+        if (bossCollider != null)
+            return bossCollider.bounds.center;
+
+        if (spriteRenderer != null)
+            return spriteRenderer.bounds.center;
+
+        return transform.position;
+    }
+
+    private Vector2 GetBossColliderCenterOffset()
+    {
+        if (bossCollider != null)
+            return (Vector2)bossCollider.bounds.center - (Vector2)transform.position;
+
+        if (spriteRenderer != null)
+            return (Vector2)spriteRenderer.bounds.center - (Vector2)transform.position;
+
+        return Vector2.zero;
+    }
+
+    private Vector2 GetBossCastSize()
+    {
+        if (bossCollider != null)
+            return bossCollider.bounds.size;
+
+        if (spriteRenderer != null)
+            return spriteRenderer.bounds.size;
+
+        return Vector2.one;
+    }
+
     private void ClampInsideCameraView()
     {
         // 보스가 카메라 밖으로 나가지 않게 콜라이더 크기와 여백을 고려해 위치를 제한한다.
@@ -254,16 +625,21 @@ public class BossDrone : MonoBehaviour, IDamageable
         float minY = cameraPosition.y - halfHeight + bossExtents.y + cameraEdgePadding;
         float maxY = cameraPosition.y + halfHeight - bossExtents.y - cameraEdgePadding;
 
-        Vector3 clampedPosition = transform.position;
-        clampedPosition.x = minX > maxX
+        Vector2 colliderOffset = GetBossColliderCenterOffset();
+        Vector3 clampedCenter = GetBossVisualCenter();
+        clampedCenter.x = minX > maxX
             ? cameraPosition.x
-            : Mathf.Clamp(clampedPosition.x, minX, maxX);
-        clampedPosition.y = minY > maxY
+            : Mathf.Clamp(clampedCenter.x, minX, maxX);
+        clampedCenter.y = minY > maxY
             ? cameraPosition.y
-            : Mathf.Clamp(clampedPosition.y, minY, maxY);
+            : Mathf.Clamp(clampedCenter.y, minY, maxY);
 
-        transform.position = clampedPosition;
-        swayBaseX = transform.position.x;
+        Vector3 clampedPosition = new Vector3(
+            clampedCenter.x - colliderOffset.x,
+            clampedCenter.y - colliderOffset.y,
+            transform.position.z);
+
+        MoveToSafePosition(clampedPosition, LayerMask.GetMask("Ground"));
     }
 
     private Vector2 GetBossExtents()
@@ -300,12 +676,11 @@ public class BossDrone : MonoBehaviour, IDamageable
             if (safePosition == transform.position)
                 yield break;
 
-            transform.position = Vector3.MoveTowards(
+            Vector3 nextPosition = Vector3.MoveTowards(
                 transform.position,
                 safePosition,
                 wallAvoidSpeed * Time.deltaTime);
-
-            swayBaseX = transform.position.x;
+            MoveToSafePosition(nextPosition, groundMask);
 
             yield return null;
         }
@@ -357,6 +732,7 @@ public class BossDrone : MonoBehaviour, IDamageable
         if (isDead || player == null) yield break;
 
         isDoingUDash = true;
+        LayerMask groundMask = LayerMask.GetMask("Ground");
 
         Vector3 p0 = transform.position;
         float dirX = player.position.x > transform.position.x ? 1f : -1f;
@@ -380,7 +756,15 @@ public class BossDrone : MonoBehaviour, IDamageable
             // 2차 베지에 곡선 위치 업데이트
             Vector3 m1 = Vector3.Lerp(p0, p1, easeT);
             Vector3 m2 = Vector3.Lerp(p1, p2, easeT);
-            transform.position = Vector3.Lerp(m1, m2, easeT);
+            Vector3 targetPosition = Vector3.Lerp(m1, m2, easeT);
+            bool reachedTarget = MoveToSafePosition(targetPosition, groundMask);
+
+            // 벽에 막혔으면 그 자리에서 돌진을 끊어 관통/끼임을 막는다.
+            if (!reachedTarget)
+            {
+                ResolveCurrentWallOverlap(groundMask);
+                break;
+            }
 
             // 곡선 진행도가 20%를 넘으면 설정한 간격(fanDashFireDelay)마다 발사
             if (easeT >= 0.2f && firedCount < fanDashVolleyCount)
@@ -446,49 +830,80 @@ public class BossDrone : MonoBehaviour, IDamageable
 
     IEnumerator HealDroneLoop()
     {
+        while (!isDead && currentHp > maxHp * 0.5f)
+            yield return null;
+
         yield return new WaitForSeconds(healDroneFirstDelay);
         while (!isDead)
         {
             if (healDronePrefab == null) yield break;
-            yield return StartCoroutine(HealDronePattern());
+            if (currentHp < maxHp)
+                yield return StartCoroutine(HealDronePattern());
             yield return new WaitForSeconds(healDroneRepeatDelay);
         }
     }
 
     IEnumerator HealDronePattern()
     {
-        // 보스 주변 양쪽에 회복 드론을 소환하고, 모든 드론이 사라질 때까지 회복 페이즈를 유지한다.
+        // 보스전 2페이즈부터 화면 밖 좌우에서 회복 드론을 날려 보내고, 둘 다 붙거나 파괴될 때까지 기다린다.
         if (healDronePrefab == null) yield break;
 
         healDroneAliveCount = 0;
-        Vector3[] offsets = { new Vector3(-healDroneOffsetX, healDroneOffsetY, 0f), new Vector3(healDroneOffsetX, healDroneOffsetY, 0f) };
-        int spawnCount = Mathf.Min(healDroneCount, offsets.Length);
+        float elapsed = 0f;
+        float[] sides = { -1f, 1f };
+        int spawnCount = Mathf.Min(Mathf.Max(0, healDroneCount), sides.Length);
 
         for (int i = 0; i < spawnCount; i++)
         {
-            Vector3 spawnPos = transform.position + offsets[i];
+            float side = sides[i];
+            Vector3 spawnPos = GetHealDroneSpawnPosition(side);
             GameObject go = Instantiate(healDronePrefab, spawnPos, Quaternion.identity);
             HealDrone hd = go.GetComponent<HealDrone>() ?? go.AddComponent<HealDrone>();
-            hd.Init(this);
+            hd.Init(this, side);
             healDroneAliveCount++;
-            StartCoroutine(HealDroneTimer(hd));
         }
-        while (healDroneAliveCount > 0 && !isDead) yield return null;
-    }
 
-    IEnumerator HealDroneTimer(HealDrone drone)
-    {
-        yield return new WaitForSeconds(healDroneTimer);
-        if (drone != null) drone.OnTimerExpired();
-    }
-
-    public void OnHealDroneDestroyed(bool doHeal)
-    {
-        if (doHeal)
+        // 드론을 빠르게 파괴해도 정해진 지속 시간이 끝나야 다음 회복 패턴 쿨타임으로 넘어간다.
+        while (!isDead && (healDroneAliveCount > 0 || elapsed < healDronePatternMinDuration))
         {
-            currentHp = Mathf.Clamp(currentHp + healAmount, 0f, maxHp);
-            UpdateHpBar();
+            elapsed += Time.deltaTime;
+            yield return null;
         }
+    }
+
+    private Vector3 GetHealDroneSpawnPosition(float side)
+    {
+        // 현재 카메라 기준 화면 밖 좌우에서 출발하게 만들어 2페이즈 카메라 이동 후에도 같은 패턴이 유지되게 한다.
+        Camera cam = mainCamera != null ? mainCamera : Camera.main;
+        Vector3 bossCenter = GetBossVisualCenter();
+
+        if (cam == null || !cam.orthographic)
+            return bossCenter + new Vector3(side * (12f + healDroneSpawnOutsidePadding), healDroneOffsetY, 0f);
+
+        float halfHeight = cam.orthographicSize;
+        float halfWidth = halfHeight * cam.aspect;
+        float spawnX = cam.transform.position.x + Mathf.Sign(side) * (halfWidth + healDroneSpawnOutsidePadding);
+        return new Vector3(spawnX, bossCenter.y + healDroneOffsetY, 0f);
+    }
+
+    public Vector3 GetHealDroneAttachPosition(float side)
+    {
+        // 드론이 보스의 좌우 하단에 붙어 보이도록 보스 중심 기준 부착 위치를 제공한다.
+        Vector3 bossCenter = GetBossVisualCenter();
+        return bossCenter + new Vector3(Mathf.Sign(side) * healDroneOffsetX, healDroneOffsetY, 0f);
+    }
+
+    public void HealFromAttachedDrone(float deltaTime)
+    {
+        if (isDead)
+            return;
+
+        currentHp = Mathf.Clamp(currentHp + healAmount * deltaTime, 0f, maxHp);
+        UpdateHpBar();
+    }
+
+    public void OnHealDroneDestroyed()
+    {
         healDroneAliveCount = Mathf.Max(0, healDroneAliveCount - 1);
     }
 
@@ -499,9 +914,15 @@ public class BossDrone : MonoBehaviour, IDamageable
         currentHp = Mathf.Clamp(currentHp - damage, 0f, maxHp);
         UpdateHpBar();
         CheckHalfHealthReached();
+
+        if (currentHp <= 0f)
+        {
+            StartDeath();
+            return;
+        }
+
         if (hitFlashCoroutine != null) StopCoroutine(hitFlashCoroutine);
         hitFlashCoroutine = StartCoroutine(HitFlash());
-        if (currentHp <= 0f) StartCoroutine(Die());
     }
 
     IEnumerator HitFlash()
@@ -513,20 +934,32 @@ public class BossDrone : MonoBehaviour, IDamageable
         hitFlashCoroutine = null;
     }
 
-    IEnumerator Die()
+    private void StartDeath()
     {
+        if (isDead)
+            return;
+
         isDead = true;
         StopAllCoroutines();
+        StartCoroutine(Die());
+    }
+
+    IEnumerator Die()
+    {
         if (rb != null) rb.linearVelocity = Vector2.zero;
         if (bossCollider != null) bossCollider.enabled = false;
-        if (bossCanvas != null) Destroy(bossCanvas.gameObject);
+        DestroyBossCanvas();
+        ClearExistingHealDrones();
+        ShowClearMessage();
 
         float elapsed = 0f;
+        Color startColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
         while (elapsed < fadeDuration)
         {
             elapsed += Time.deltaTime;
             float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
-            if (spriteRenderer != null) spriteRenderer.color = new Color(1f, 1f, 1f, alpha);
+            if (spriteRenderer != null)
+                spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
             yield return null;
         }
         Destroy(gameObject);
@@ -616,6 +1049,55 @@ public class BossDrone : MonoBehaviour, IDamageable
     void UpdateHpBar()
     {
         if (hpSlider != null) hpSlider.value = currentHp;
+    }
+
+    private void DestroyBossCanvas()
+    {
+        if (bossCanvas == null)
+            return;
+
+        Destroy(bossCanvas.gameObject);
+        bossCanvas = null;
+        hpSlider = null;
+    }
+
+    private void ShowClearMessage()
+    {
+        if (clearCanvas != null)
+            return;
+
+        GameObject canvasObj = new GameObject("BossClearCanvas");
+        clearCanvas = canvasObj.AddComponent<Canvas>();
+        clearCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        clearCanvas.sortingOrder = 1001;
+        canvasObj.AddComponent<CanvasScaler>();
+        canvasObj.AddComponent<GraphicRaycaster>();
+
+        GameObject textObj = new GameObject("ClearText");
+        textObj.transform.SetParent(canvasObj.transform, false);
+
+        RectTransform rt = textObj.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+
+        Text text = textObj.AddComponent<Text>();
+        text.text = "CLEAR!";
+        text.alignment = TextAnchor.MiddleCenter;
+        text.color = new Color(1f, 0.9f, 0.25f, 1f);
+        text.fontSize = 72;
+        text.fontStyle = FontStyle.Bold;
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+    }
+
+    private void DestroyClearCanvas()
+    {
+        if (clearCanvas == null)
+            return;
+
+        Destroy(clearCanvas.gameObject);
+        clearCanvas = null;
     }
 
     private void CheckHalfHealthReached()
