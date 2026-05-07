@@ -8621,6 +8621,7 @@ MonoBehaviour:
   _bulletColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   _bulletWidth: 0.08
   _bulletLength: 0.3
+  _pollMouseInput: 1
   _maxBullets: 10
   _bulletLifetime: 0.5
 --- !u!95 &1436086882
