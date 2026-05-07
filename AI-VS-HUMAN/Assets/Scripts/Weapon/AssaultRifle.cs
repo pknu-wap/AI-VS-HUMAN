@@ -21,6 +21,9 @@ public class AssaultRifle : MonoBehaviour
     [SerializeField] private float _bulletWidth = 0.08f;
     [SerializeField] private float _bulletLength = 0.3f;
 
+    [Header("입력 보정")]
+    [SerializeField] private bool _pollMouseInput = true;
+
     [Header("성능 설정")]
     [SerializeField] private int _maxBullets = 10;      // 동시에 존재할 수 있는 최대 총알 수
     [SerializeField] private float _bulletLifetime = 0.5f; // 총알 최대 수명 (초)
@@ -47,6 +50,15 @@ public class AssaultRifle : MonoBehaviour
         }
 
         _input.OnFireEvent += HandleFire;
+    }
+
+    private void Update()
+    {
+        // 빌드 환경에서 PlayerInput 메시지가 누락되어도 마우스를 누른 순간만 직접 읽어 단발 발사가 되게 한다.
+        if (!_pollMouseInput || Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
+            return;
+
+        HandleFire(GetMouseWorldPosition());
     }
 
     private void HandleFire(Vector2 mousePos)
@@ -209,12 +221,30 @@ public class AssaultRifle : MonoBehaviour
             _input.OnFireEvent -= HandleFire;
     }
 
+    private Vector2 GetMouseWorldPosition()
+    {
+        if (_cam == null)
+            _cam = Camera.main;
+
+        if (_cam == null)
+            return transform.position;
+
+        Vector3 screenPosition = Mouse.current.position.ReadValue();
+        screenPosition.z = Mathf.Abs(_cam.transform.position.z - transform.position.z);
+        return _cam.ScreenToWorldPoint(screenPosition);
+    }
+
     private static Material GetLineMaterial()
     {
         // 총알과 피격 이펙트가 같은 런타임 Material을 공유하도록 캐싱한다.
         if (_lineMaterial == null)
         {
-            Shader shader = Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply");
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+                shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (shader == null)
+                shader = Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply");
+
             _lineMaterial = new Material(shader);
             _lineMaterial.name = "AssaultRifle Line Material";
         }
