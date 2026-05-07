@@ -8617,7 +8617,7 @@ MonoBehaviour:
     m_Bits: 256
   _wallLayer:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 1536
   _bulletColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   _bulletWidth: 0.08
   _bulletLength: 0.3
@@ -8640,7 +8640,7 @@ Animator:
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
-  m_WarningMessage:
+  m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0

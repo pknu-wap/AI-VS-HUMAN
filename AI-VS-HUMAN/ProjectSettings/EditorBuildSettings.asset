@@ -5,9 +5,12 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
+  - enabled: 1
+    path: Assets/Scenes/BossFightScene.unity
+    guid: 52323802ad95a064dbb58c3adc95e107
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: cc8e773e5b2917f4b9f69093b345491d, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 3c0caea2fb2151b449e3b4a3778d9f3f, type: 3}
