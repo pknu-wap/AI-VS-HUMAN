@@ -1,11 +1,8 @@
-// 플레이어의 라이플 발사, 탄환 궤적 시각화, 적/벽 충돌 판정을 담당하는 스크립트
-// 실제 물리 탄환 대신 LineRenderer를 빠르게 움직여 총알처럼 보이게 만든다.
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(InputController))]
 public class AssaultRifle : MonoBehaviour
 {
     [Header("Rifle Settings")]
@@ -13,8 +10,8 @@ public class AssaultRifle : MonoBehaviour
     [SerializeField] private float _bulletSpeed = 25f;
     [SerializeField] private float _maxDistance = 20f;
     [SerializeField] private float _fireRate = 0.1f;
-    [SerializeField] private LayerMask _enemyLayer = default;
-    [SerializeField] private LayerMask _wallLayer = default;
+    [SerializeField] private LayerMask _enemyLayer;
+    [SerializeField] private LayerMask _wallLayer;
 
     [Header("Bullet Visual")]
     [SerializeField] private Color _bulletColor = Color.yellow;
@@ -42,13 +39,6 @@ public class AssaultRifle : MonoBehaviour
         _input = GetComponent<InputController>();
         _cam   = Camera.main;
 
-        if (_input == null)
-        {
-            Debug.LogError("AssaultRifle needs an InputController on the same GameObject.", this);
-            enabled = false;
-            return;
-        }
-
         _input.OnFireEvent += HandleFire;
     }
 
@@ -63,7 +53,6 @@ public class AssaultRifle : MonoBehaviour
 
     private void HandleFire(Vector2 mousePos)
     {
-        // 발사 속도와 동시에 존재 가능한 탄환 수를 제한해 과도한 연사를 막는다.
         if (!_canFire) return;
 
         // 최대 총알 수 초과 시 발사 안 함
@@ -85,13 +74,13 @@ public class AssaultRifle : MonoBehaviour
 
     private IEnumerator MoveBullet(Vector2 origin, Vector2 dir)
     {
-        // 매 프레임 짧은 레이캐스트를 쏴서 빠른 탄환이 적/벽을 뚫고 지나가지 않게 한다.
         _currentBulletCount++;
 
         GameObject   bullet = new GameObject("Bullet");
         LineRenderer lr     = bullet.AddComponent<LineRenderer>();
 
-        lr.sharedMaterial = GetLineMaterial();
+        lr.material = new Material(
+            Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply"));
         lr.startColor    = _bulletColor;
         lr.endColor      = new Color(_bulletColor.r, _bulletColor.g, _bulletColor.b, 0f);
         lr.startWidth    = _bulletWidth;
@@ -236,7 +225,6 @@ public class AssaultRifle : MonoBehaviour
 
     private static Material GetLineMaterial()
     {
-        // 총알과 피격 이펙트가 같은 런타임 Material을 공유하도록 캐싱한다.
         if (_lineMaterial == null)
         {
             Shader shader = Shader.Find("Sprites/Default");
@@ -244,11 +232,12 @@ public class AssaultRifle : MonoBehaviour
                 shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
             if (shader == null)
                 shader = Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply");
-
+            if (shader == null)
+                shader = Shader.Find("UI/Default");
+                
             _lineMaterial = new Material(shader);
             _lineMaterial.name = "AssaultRifle Line Material";
         }
-
         return _lineMaterial;
     }
 }
