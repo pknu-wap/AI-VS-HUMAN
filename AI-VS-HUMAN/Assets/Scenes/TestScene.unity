@@ -7557,7 +7557,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   maxHp: 5
+  respawnDelay: 2
+  respawnPoint: {fileID: 0}
   invincibleDuration: 1
+  blinkInterval: 0.1
+  createHealthUI: 1
+  healthUiPosition: {x: -40, y: 40}
+  healthFontSize: 32
+  fullHeart: "\u25A0"
+  emptyHeart: "\u25A1"
 --- !u!114 &1436086876
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7574,8 +7582,9 @@ MonoBehaviour:
   knockbackDuration: 0.3
   detectRadius: 1
   enemyLayer:
-    serializedVersion: 2
     m_Bits: 256
+  <IsDashing>k__BackingField: 0
+  knockbackApplied: 0
 --- !u!114 &1436086877
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7752,6 +7761,9 @@ MonoBehaviour:
   wallAvoidSpeed: 5
   wallCheckRadius: 0.45
   wallStopPadding: 0.2
+  wallUnstuckPadding: 0.05
+  wallSafeStepDistance: 0.2
+  wallResolveIterations: 4
   fanBulletPrefab: {fileID: 6266731588553231476, guid: 64b914941055fd746bcd232dfb6eef92, type: 3}
   fanBulletCount: 8
   fanSpreadAngle: 150
@@ -7774,12 +7786,13 @@ MonoBehaviour:
   hpBarColor: {r: 0.9, g: 0.1, b: 0.1, a: 1}
   healDronePrefab: {fileID: 5305686523954001029, guid: 9349afcae9cfee34ca0ed0724a6f8eb4, type: 3}
   healDroneCount: 2
-  healDroneTimer: 30
   healDroneFirstDelay: 30
   healDroneRepeatDelay: 30
   healAmount: 300
   healDroneOffsetX: 3
   healDroneOffsetY: -1
+  healDroneSpawnOutsidePadding: 2
+  healDronePatternMinDuration: 5
 --- !u!50 &1569403237
 Rigidbody2D:
   serializedVersion: 5
@@ -7970,9 +7983,27 @@ MonoBehaviour:
   roomCameraController: {fileID: 427596049}
   bossRoom: {fileID: 1781819258}
   boss: {fileID: 1569403234}
+  bossPrefab: {fileID: 0}
+  bossSpawnPoint: {fileID: 0}
+  bossSpawnPosition: {x: 32, y: 8, z: 0}
+  hideSceneBossUntilRoomEntered: 1
+  createPhase1CeilingWall: 1
+  useCameraTopForCeilingWall: 0
+  ceilingWallPoint: {fileID: 0}
+  ceilingWallPosition: {x: 32, y: 9, z: 0}
+  ceilingWallSize: {x: 34, y: 1}
+  ceilingWallHeight: 1
+  ceilingWallWidthPadding: 2
+  createPhase1EntranceWall: 1
+  entranceWallPoint: {fileID: 0}
+  entranceWallPosition: {x: 15.5, y: 0, z: 0}
+  entranceWallSize: {x: 1, y: 18}
   scrollSpeed: 5
   scrollDelay: 3
   phase1FollowSpeed: 3
+  keepBossVisibleInPhase2: 1
+  phase2BossCameraYOffset: 6
+  phase2BossFollowSpeed: 9
   enterWhenPlayerInsideRoom: 1
   startPhase2WhenBossHalfHealth: 1
 --- !u!1001 &2012015613
@@ -8044,6 +8075,67 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f01f3cb7b6f3e3649bfdb317c2e4fec7, type: 3}
+--- !u!1001 &2939084059262097397
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7.58
+      objectReference: {fileID: 0}
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.44
+      objectReference: {fileID: 0}
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5861199347615397664, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6609676312589147286, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_Name
+      value: Ghost
+      objectReference: {fileID: 0}
+    - target: {fileID: 6609676312589147286, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
 --- !u!1001 &7587917901683441193
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8212,3 +8304,4 @@ SceneRoots:
   - {fileID: 2012015613}
   - {fileID: 1287237225}
   - {fileID: 8976472747585752050}
+  - {fileID: 2939084059262097397}
