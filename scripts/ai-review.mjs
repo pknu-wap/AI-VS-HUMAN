@@ -9,13 +9,8 @@ const model = process.env.OPENAI_MODEL || "gpt-5.1";
 const maxPatchChars = Number(process.env.AI_REVIEW_MAX_PATCH_CHARS || 60000);
 
 const event = JSON.parse(await readFile(eventPath, "utf8"));
-const pullRequest = event.pull_request;
-
-if (!pullRequest) {
-  throw new Error("This workflow must run from a pull_request event.");
-}
-
 const [owner, repo] = repository.split("/");
+const pullRequest = await resolvePullRequest(event, owner, repo);
 const prNumber = pullRequest.number;
 
 const changedFiles = await fetchChangedFiles(owner, repo, prNumber);
@@ -95,6 +90,30 @@ async function fetchChangedFiles(owner, repo, prNumber) {
   }
 
   return files;
+}
+
+async function fetchPullRequest(owner, repo, prNumber) {
+  return githubApi(`/repos/${owner}/${repo}/pulls/${prNumber}`);
+}
+
+async function resolvePullRequest(event, owner, repo) {
+  if (event.pull_request) {
+    return event.pull_request;
+  }
+
+  const rawPrNumber = event.inputs?.pr_number;
+
+  if (!rawPrNumber) {
+    throw new Error("Missing workflow_dispatch input: pr_number");
+  }
+
+  const prNumber = Number(rawPrNumber);
+
+  if (!Number.isInteger(prNumber) || prNumber <= 0) {
+    throw new Error(`Invalid pull request number: ${rawPrNumber}`);
+  }
+
+  return fetchPullRequest(owner, repo, prNumber);
 }
 
 function buildReviewInput(files, limit) {
