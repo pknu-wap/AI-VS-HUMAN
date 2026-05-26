@@ -8,45 +8,74 @@ const eventPath = requireEnv("GITHUB_EVENT_PATH");
 const model = process.env.OPENAI_MODEL || "gpt-5.1";
 const maxPatchChars = Number(process.env.AI_REVIEW_MAX_PATCH_CHARS || 60000);
 
-const event = JSON.parse(await readFile(eventPath, "utf8"));
-const pullRequest = event.pull_request;
-
-if (!pullRequest) {
-  throw new Error("This workflow must run from a pull_request event.");
+try {
+  await run();
+} catch (error) {
+  console.error("AI review failed, but this helper should not block the PR.");
+  console.error(error);
 }
 
-const [owner, repo] = repository.split("/");
-const prNumber = pullRequest.number;
+async function run() {
+  const event = JSON.parse(await readFile(eventPath, "utf8"));
+  const [owner, repo] = repository.split("/");
+  const pullRequest = await resolvePullRequest(event, owner, repo);
+  const prNumber = pullRequest.number;
 
-const changedFiles = await fetchChangedFiles(owner, repo, prNumber);
-const reviewInput = buildReviewInput(changedFiles, maxPatchChars);
+  const changedFiles = await fetchChangedFiles(owner, repo, prNumber);
+  const reviewInput = buildReviewInput(changedFiles, maxPatchChars);
 
-if (!reviewInput.trim()) {
-  await upsertPrComment(
-    owner,
-    repo,
-    prNumber,
-    `${marker}\n## AI Senior Review\n\nThere is no text diff to review. Check whether this PR only changes binary files, metadata, or deletions.`
-  );
-  process.exit(0);
+  if (!reviewInput.trim()) {
+    await upsertPrComment(
+      owner,
+      repo,
+      prNumber,
+      `${marker}\n## AI Senior Review\n\nThere is no text diff to review. Check whether this PR only changes binary files, metadata, or deletions.`
+    );
+    return;
+  }
+
+  const prompt = [
+    `Repository: ${repository}`,
+    `Pull request: #${prNumber} ${pullRequest.title}`,
+    `Author: ${pullRequest.user?.login ?? "unknown"}`,
+    `Base: ${pullRequest.base?.ref ?? "unknown"}`,
+    `Head: ${pullRequest.head?.ref ?? "unknown"}`,
+    "",
+    "PR body:",
+    pullRequest.body || "(no description)",
+    "",
+    "Changed files and patches:",
+    reviewInput,
+  ].join("\n");
+
+  const review = await createReview(prompt).catch(async (error) => {
+    console.error("OpenAI review generation failed.");
+    console.error(error);
+
+    await upsertPrComment(
+      owner,
+      repo,
+      prNumber,
+      [
+        marker,
+        "## AI Senior Review",
+        "",
+        "AI review could not be generated. Check the Actions log for the exact OpenAI API error, then verify `OPENAI_API_KEY`, `OPENAI_MODEL`, project billing, and model access.",
+      ].join("\n")
+    ).catch((commentError) => {
+      console.error("Failed to post AI review failure notice.");
+      console.error(commentError);
+    });
+
+    return null;
+  });
+
+  if (!review) {
+    return;
+  }
+
+  await upsertPrComment(owner, repo, prNumber, `${marker}\n${review.trim()}\n`);
 }
-
-const prompt = [
-  `Repository: ${repository}`,
-  `Pull request: #${prNumber} ${pullRequest.title}`,
-  `Author: ${pullRequest.user?.login ?? "unknown"}`,
-  `Base: ${pullRequest.base?.ref ?? "unknown"}`,
-  `Head: ${pullRequest.head?.ref ?? "unknown"}`,
-  "",
-  "PR body:",
-  pullRequest.body || "(no description)",
-  "",
-  "Changed files and patches:",
-  reviewInput,
-].join("\n");
-
-const review = await createReview(prompt);
-await upsertPrComment(owner, repo, prNumber, `${marker}\n${review.trim()}\n`);
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -95,6 +124,30 @@ async function fetchChangedFiles(owner, repo, prNumber) {
   }
 
   return files;
+}
+
+async function fetchPullRequest(owner, repo, prNumber) {
+  return githubApi(`/repos/${owner}/${repo}/pulls/${prNumber}`);
+}
+
+async function resolvePullRequest(event, owner, repo) {
+  if (event.pull_request) {
+    return event.pull_request;
+  }
+
+  const rawPrNumber = event.inputs?.pr_number;
+
+  if (!rawPrNumber) {
+    throw new Error("Missing workflow_dispatch input: pr_number");
+  }
+
+  const prNumber = Number(rawPrNumber);
+
+  if (!Number.isInteger(prNumber) || prNumber <= 0) {
+    throw new Error(`Invalid pull request number: ${rawPrNumber}`);
+  }
+
+  return fetchPullRequest(owner, repo, prNumber);
 }
 
 function buildReviewInput(files, limit) {
