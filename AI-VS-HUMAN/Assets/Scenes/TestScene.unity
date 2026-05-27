@@ -7557,7 +7557,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   maxHp: 5
+  respawnDelay: 2
+  respawnPoint: {fileID: 0}
   invincibleDuration: 1
+  blinkInterval: 0.1
+  createHealthUI: 1
+  healthUiPosition: {x: -40, y: 40}
+  healthFontSize: 32
+  fullHeart: "\u25A0"
+  emptyHeart: "\u25A1"
 --- !u!114 &1436086876
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7731,7 +7739,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1569403233}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d58716192a9b8a4181929bade8fc096, type: 3}
   m_Name: 
@@ -7753,6 +7761,9 @@ MonoBehaviour:
   wallAvoidSpeed: 5
   wallCheckRadius: 0.45
   wallStopPadding: 0.2
+  wallUnstuckPadding: 0.05
+  wallSafeStepDistance: 0.2
+  wallResolveIterations: 4
   fanBulletPrefab: {fileID: 6266731588553231476, guid: 64b914941055fd746bcd232dfb6eef92, type: 3}
   fanBulletCount: 8
   fanSpreadAngle: 150
@@ -7775,12 +7786,13 @@ MonoBehaviour:
   hpBarColor: {r: 0.9, g: 0.1, b: 0.1, a: 1}
   healDronePrefab: {fileID: 5305686523954001029, guid: 9349afcae9cfee34ca0ed0724a6f8eb4, type: 3}
   healDroneCount: 2
-  healDroneTimer: 30
   healDroneFirstDelay: 30
   healDroneRepeatDelay: 30
   healAmount: 300
   healDroneOffsetX: 3
   healDroneOffsetY: -1
+  healDroneSpawnOutsidePadding: 2
+  healDronePatternMinDuration: 5
 --- !u!50 &1569403237
 Rigidbody2D:
   serializedVersion: 5
@@ -7854,6 +7866,35 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 0.8828125}
   m_EdgeRadius: 0
+--- !u!114 &1569403240
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1569403233}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7774e734790f4584b858e314b7a5e113, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossSafeZonePattern
+  boss: {fileID: 1569403234}
+  bossRoom: {fileID: 1781819258}
+  player: {fileID: 1436086872}
+  targetCamera: {fileID: 427596052}
+  startWhenBossDetectsPlayer: 1
+  requirePlayerInsideRoom: 1
+  initialDelay: 2
+  patternInterval: 8
+  safeZoneSize: 6
+  safeZoneMinSize: 3
+  safeZoneShrinkPerUse: 0
+  safeZoneWarningDuration: 3
+  safeZoneDamage: 1
+  safeZoneRoomPadding: 1
+  warningColor: {r: 0.2, g: 1, b: 0.35, a: 0.28}
+  finalColor: {r: 1, g: 0.95, b: 0.2, a: 0.5}
+  sortingOrder: 5
 --- !u!1001 &1680238004
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7971,9 +8012,27 @@ MonoBehaviour:
   roomCameraController: {fileID: 427596049}
   bossRoom: {fileID: 1781819258}
   boss: {fileID: 1569403234}
+  bossPrefab: {fileID: 0}
+  bossSpawnPoint: {fileID: 0}
+  bossSpawnPosition: {x: 32, y: 8, z: 0}
+  hideSceneBossUntilRoomEntered: 1
+  createPhase1CeilingWall: 1
+  useCameraTopForCeilingWall: 0
+  ceilingWallPoint: {fileID: 0}
+  ceilingWallPosition: {x: 32, y: 9, z: 0}
+  ceilingWallSize: {x: 34, y: 1}
+  ceilingWallHeight: 1
+  ceilingWallWidthPadding: 2
+  createPhase1EntranceWall: 1
+  entranceWallPoint: {fileID: 0}
+  entranceWallPosition: {x: 15.5, y: 0, z: 0}
+  entranceWallSize: {x: 1, y: 18}
   scrollSpeed: 5
   scrollDelay: 3
   phase1FollowSpeed: 3
+  keepBossVisibleInPhase2: 1
+  phase2BossCameraYOffset: 6
+  phase2BossFollowSpeed: 9
   enterWhenPlayerInsideRoom: 1
   startPhase2WhenBossHalfHealth: 1
 --- !u!1001 &2012015613
@@ -8199,6 +8258,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3556424095073368702, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1569403239}
+    - targetCorrespondingSourceObject: {fileID: 3556424095073368702, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1569403240}
   m_SourcePrefab: {fileID: 100100000, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
