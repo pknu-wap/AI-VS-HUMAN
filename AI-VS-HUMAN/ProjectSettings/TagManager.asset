@@ -9,10 +9,10 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - shadow
   - Water
   - UI
-  - 
+  - Ghost
   - Player
   - Enemy
   - Ground

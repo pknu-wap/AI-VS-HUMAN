@@ -38,7 +38,6 @@ public class PlayerHealth : MonoBehaviour
     private PlayerMove playerMove;
     private InputController inputController;
     private AssaultRifle assaultRifle;
-    private PlayerDashKnockback dashKnockback;
     private Coroutine invincibleCoroutine;
     private Coroutine respawnCoroutine;
     private Canvas healthCanvas;
@@ -61,7 +60,6 @@ public class PlayerHealth : MonoBehaviour
         playerMove = GetComponent<PlayerMove>();
         inputController = GetComponent<InputController>();
         assaultRifle = GetComponent<AssaultRifle>();
-        dashKnockback = GetComponent<PlayerDashKnockback>();
 
         if (rb != null)
             originalRigidbodySimulated = rb.simulated;
@@ -209,8 +207,7 @@ public class PlayerHealth : MonoBehaviour
         if (assaultRifle != null)
             assaultRifle.enabled = enabled;
 
-        if (dashKnockback != null)
-            dashKnockback.enabled = enabled;
+
     }
 
     private void SetCollisionEnabled(bool enabled)
