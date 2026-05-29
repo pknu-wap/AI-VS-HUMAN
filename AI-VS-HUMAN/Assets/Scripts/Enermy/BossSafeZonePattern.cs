@@ -25,15 +25,26 @@ public class BossSafeZonePattern : MonoBehaviour
 
     [Header("Visual")]
     public Color warningColor = new Color(0.2f, 1f, 0.35f, 0.28f);
-    public Color finalColor = new Color(1f, 0.95f, 0.2f, 0.5f);
+    public Color borderColor = new Color(0.1f, 1f, 0.35f, 0.95f);
+    public Color dangerOutsideColor = new Color(1f, 0.05f, 0.02f, 0.38f);
+    public float borderThickness = 0.12f;
+    public float flashMinAlpha = 0.25f;
+    public float flashFrequency = 10f;
+    public float dangerFadeInDuration = 0.35f;
+    public float dangerLeadTime = 0.8f;
+    public float safeZoneFadeInDuration = 0.6f;
+    [Range(0f, 1f)] public float safeZonePreviewAlpha = 0.35f;
     public int sortingOrder = 5;
 
     private GameObject safeZoneMarker;
     private SpriteRenderer safeZoneRenderer;
+    private readonly SpriteRenderer[] borderRenderers = new SpriteRenderer[4];
+    private readonly SpriteRenderer[] dangerRenderers = new SpriteRenderer[4];
     private Sprite safeZoneSprite;
     private Texture2D safeZoneTexture;
     private PlayerHealth playerHealth;
     private Coroutine patternLoop;
+    private Vector2 currentZoneSize;
     private float currentSafeZoneSize;
 
     private void Awake()
@@ -90,6 +101,9 @@ public class BossSafeZonePattern : MonoBehaviour
 
         float elapsed = 0f;
         float duration = Mathf.Max(0.05f, safeZoneWarningDuration);
+        float leadTime = Mathf.Clamp(dangerLeadTime, 0f, duration);
+        float fadeInDuration = Mathf.Clamp(safeZoneFadeInDuration, 0.01f, Mathf.Max(0.01f, duration - leadTime));
+
         while (elapsed < duration)
         {
             if (!CanRunPattern())
@@ -99,10 +113,7 @@ public class BossSafeZonePattern : MonoBehaviour
             }
 
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-
-            if (safeZoneRenderer != null)
-                safeZoneRenderer.color = Color.Lerp(warningColor, finalColor, t);
+            UpdateSafeZoneVisual(elapsed, duration, leadTime, fadeInDuration);
 
             yield return null;
         }
@@ -214,12 +225,187 @@ public class BossSafeZonePattern : MonoBehaviour
 
         safeZoneMarker = new GameObject("Boss Safe Zone");
         safeZoneMarker.transform.position = zoneBounds.center;
-        safeZoneMarker.transform.localScale = new Vector3(zoneBounds.size.x, zoneBounds.size.y, 1f);
 
-        safeZoneRenderer = safeZoneMarker.AddComponent<SpriteRenderer>();
-        safeZoneRenderer.sprite = GetSafeZoneSprite();
-        safeZoneRenderer.color = color;
-        safeZoneRenderer.sortingOrder = sortingOrder;
+        Vector2 size = zoneBounds.size;
+        currentZoneSize = size;
+        safeZoneRenderer = CreateZoneSprite("Fill", Vector2.zero, size, color, sortingOrder);
+        CreateDangerOutsideSprites(zoneBounds);
+        CreateBorderSprites(size);
+        UpdateSafeZoneVisual(0f, Mathf.Max(0.05f, safeZoneWarningDuration), Mathf.Max(0f, dangerLeadTime), Mathf.Max(0.01f, safeZoneFadeInDuration));
+    }
+
+    private SpriteRenderer CreateZoneSprite(string objectName, Vector2 localPosition, Vector2 size, Color color, int order)
+    {
+        GameObject obj = new GameObject(objectName);
+        obj.transform.SetParent(safeZoneMarker.transform, false);
+        obj.transform.localPosition = localPosition;
+        obj.transform.localScale = new Vector3(size.x, size.y, 1f);
+
+        SpriteRenderer renderer = obj.AddComponent<SpriteRenderer>();
+        renderer.sprite = GetSafeZoneSprite();
+        renderer.color = color;
+        renderer.sortingOrder = order;
+        return renderer;
+    }
+
+    private void CreateBorderSprites(Vector2 size)
+    {
+        borderRenderers[0] = CreateZoneSprite(
+            "Border Top",
+            Vector2.zero,
+            Vector2.zero,
+            borderColor,
+            sortingOrder + 1);
+
+        borderRenderers[1] = CreateZoneSprite(
+            "Border Left",
+            Vector2.zero,
+            Vector2.zero,
+            borderColor,
+            sortingOrder + 1);
+
+        borderRenderers[2] = CreateZoneSprite(
+            "Border Bottom",
+            Vector2.zero,
+            Vector2.zero,
+            borderColor,
+            sortingOrder + 1);
+
+        borderRenderers[3] = CreateZoneSprite(
+            "Border Right",
+            Vector2.zero,
+            Vector2.zero,
+            borderColor,
+            sortingOrder + 1);
+    }
+
+    private void CreateDangerOutsideSprites(Bounds zoneBounds)
+    {
+        Bounds areaBounds = GetSafeZoneRoomBounds();
+        Color color = dangerOutsideColor;
+        color.a = 0f;
+
+        float leftWidth = Mathf.Max(0f, zoneBounds.min.x - areaBounds.min.x);
+        float rightWidth = Mathf.Max(0f, areaBounds.max.x - zoneBounds.max.x);
+        float bottomHeight = Mathf.Max(0f, zoneBounds.min.y - areaBounds.min.y);
+        float topHeight = Mathf.Max(0f, areaBounds.max.y - zoneBounds.max.y);
+
+        dangerRenderers[0] = CreateDangerSprite(
+            "Danger Left",
+            new Vector2(areaBounds.min.x + leftWidth * 0.5f, areaBounds.center.y) - (Vector2)zoneBounds.center,
+            new Vector2(leftWidth, areaBounds.size.y),
+            color);
+
+        dangerRenderers[1] = CreateDangerSprite(
+            "Danger Right",
+            new Vector2(zoneBounds.max.x + rightWidth * 0.5f, areaBounds.center.y) - (Vector2)zoneBounds.center,
+            new Vector2(rightWidth, areaBounds.size.y),
+            color);
+
+        dangerRenderers[2] = CreateDangerSprite(
+            "Danger Bottom",
+            new Vector2(zoneBounds.center.x, areaBounds.min.y + bottomHeight * 0.5f) - (Vector2)zoneBounds.center,
+            new Vector2(zoneBounds.size.x, bottomHeight),
+            color);
+
+        dangerRenderers[3] = CreateDangerSprite(
+            "Danger Top",
+            new Vector2(zoneBounds.center.x, zoneBounds.max.y + topHeight * 0.5f) - (Vector2)zoneBounds.center,
+            new Vector2(zoneBounds.size.x, topHeight),
+            color);
+    }
+
+    private SpriteRenderer CreateDangerSprite(string objectName, Vector2 localPosition, Vector2 size, Color color)
+    {
+        if (size.x <= 0.01f || size.y <= 0.01f)
+            return null;
+
+        return CreateZoneSprite(objectName, localPosition, size, color, sortingOrder - 1);
+    }
+
+    private void UpdateSafeZoneVisual(float elapsed, float duration, float leadTime, float fadeInDuration)
+    {
+        float previewFade = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, dangerFadeInDuration));
+        float fullFade = Mathf.Clamp01((elapsed - leadTime) / fadeInDuration);
+        float previewAlpha = Mathf.Clamp01(safeZonePreviewAlpha) * previewFade;
+        float zoneAlphaScale = Mathf.Lerp(previewAlpha, 1f, fullFade);
+        float borderAlphaScale = fullFade;
+
+        if (safeZoneRenderer != null)
+            safeZoneRenderer.color = WithScaledAlpha(warningColor, zoneAlphaScale);
+
+        float timerProgress = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
+        UpdateTimerBorder(timerProgress, Mathf.Max(previewFade, borderAlphaScale));
+
+        float alphaPulse = (Mathf.Sin(Time.time * flashFrequency) + 1f) * 0.5f;
+        float dangerFade = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, dangerFadeInDuration));
+        Color dangerColor = dangerOutsideColor;
+        dangerColor.a = Mathf.Lerp(Mathf.Clamp01(flashMinAlpha), dangerOutsideColor.a, alphaPulse) * dangerFade;
+
+        for (int i = 0; i < dangerRenderers.Length; i++)
+        {
+            if (dangerRenderers[i] != null)
+                dangerRenderers[i].color = dangerColor;
+        }
+    }
+
+    private void UpdateTimerBorder(float progress, float alphaScale)
+    {
+        float thickness = Mathf.Max(0.02f, borderThickness);
+        float halfWidth = currentZoneSize.x * 0.5f;
+        float halfHeight = currentZoneSize.y * 0.5f;
+
+        float topProgress = Mathf.Clamp01(progress * 4f);
+        float leftProgress = Mathf.Clamp01(progress * 4f - 1f);
+        float bottomProgress = Mathf.Clamp01(progress * 4f - 2f);
+        float rightProgress = Mathf.Clamp01(progress * 4f - 3f);
+
+        SetHorizontalBorder(borderRenderers[0], topProgress, true, halfWidth, halfHeight, thickness, alphaScale);
+        SetVerticalBorder(borderRenderers[1], leftProgress, true, halfWidth, halfHeight, thickness, alphaScale);
+        SetHorizontalBorder(borderRenderers[2], bottomProgress, false, halfWidth, halfHeight, thickness, alphaScale);
+        SetVerticalBorder(borderRenderers[3], rightProgress, false, halfWidth, halfHeight, thickness, alphaScale);
+    }
+
+    private void SetHorizontalBorder(SpriteRenderer renderer, float progress, bool rightToLeft, float halfWidth, float halfHeight, float thickness, float alphaScale)
+    {
+        if (renderer == null)
+            return;
+
+        float length = currentZoneSize.x * Mathf.Clamp01(progress);
+        float centerX = rightToLeft
+            ? halfWidth - length * 0.5f
+            : -halfWidth + length * 0.5f;
+        float centerY = rightToLeft
+            ? halfHeight - thickness * 0.5f
+            : -halfHeight + thickness * 0.5f;
+
+        renderer.transform.localPosition = new Vector2(centerX, centerY);
+        renderer.transform.localScale = new Vector3(length, thickness, 1f);
+        renderer.color = WithScaledAlpha(borderColor, length <= 0.001f ? 0f : alphaScale);
+    }
+
+    private void SetVerticalBorder(SpriteRenderer renderer, float progress, bool topToBottom, float halfWidth, float halfHeight, float thickness, float alphaScale)
+    {
+        if (renderer == null)
+            return;
+
+        float length = currentZoneSize.y * Mathf.Clamp01(progress);
+        float centerX = topToBottom
+            ? -halfWidth + thickness * 0.5f
+            : halfWidth - thickness * 0.5f;
+        float centerY = topToBottom
+            ? halfHeight - length * 0.5f
+            : -halfHeight + length * 0.5f;
+
+        renderer.transform.localPosition = new Vector2(centerX, centerY);
+        renderer.transform.localScale = new Vector3(thickness, length, 1f);
+        renderer.color = WithScaledAlpha(borderColor, length <= 0.001f ? 0f : alphaScale);
+    }
+
+    private Color WithScaledAlpha(Color color, float alphaScale)
+    {
+        color.a *= Mathf.Clamp01(alphaScale);
+        return color;
     }
 
     private Sprite GetSafeZoneSprite()
@@ -243,6 +429,12 @@ public class BossSafeZonePattern : MonoBehaviour
         Destroy(safeZoneMarker);
         safeZoneMarker = null;
         safeZoneRenderer = null;
+
+        for (int i = 0; i < borderRenderers.Length; i++)
+            borderRenderers[i] = null;
+
+        for (int i = 0; i < dangerRenderers.Length; i++)
+            dangerRenderers[i] = null;
     }
 
     private void ShrinkNextSafeZone()
