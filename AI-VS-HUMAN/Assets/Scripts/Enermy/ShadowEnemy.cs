@@ -3,17 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
-/// Shadow 몬스터
-/// - 시작 시 같은 룸에 플레이어 있으면 즉시 텔레포트
-/// - recordDelay 동안 기록 수집 + 충돌 판정 없음
-/// - recordDelay 후 충돌 판정 활성화 + 정상 이동
-/// - 플레이어와 충돌 시 데미지 1 + 즉시 소멸
+/// Shadow 몬스터 - Celeste Badeline 방식 (수정 버전)
+/// - Rigidbody2D를 Kinematic으로 변경하여 물리 충돌로 인한 엉킴 방지
+/// - rb.MovePosition을 사용하여 물리 보간과 함께 부드러운 위치 수렴
+/// - 미세한 딜레이 오프셋을 추가하여 여러 마리가 완전히 하나로 겹치는 현상 방지
 /// </summary>
 public class ShadowEnemy : MonoBehaviour
 {
     [Header("설정")]
-    public float recordDelay = 3f;
-    public float damage      = 1f;
+    public float recordDelay  = 3f;     // 몇 초 전 경로를 따라갈지
+    public float damage       = 1f;
+    public float detectRadius = 0.4f;
+    public float fadeInTime   = 1f;
 
     private struct PositionRecord
     {
@@ -27,103 +28,74 @@ public class ShadowEnemy : MonoBehaviour
     private Transform      player;
     private Rigidbody2D    rb;
     private SpriteRenderer sr;
-    private Collider2D     col;
-    private Room           myRoom;
-    private bool           isDead        = false;
-    private bool           isInitialized = false;
-
-    private LayerMask playerLayer;
+    private bool           isDead          = false;
+    private bool           isInitialized   = false;
+    private bool           canDamagePlayer = false;
+    private LayerMask      playerMask;
+    private Color          originalColor;
 
     void Start()
     {
-        sr          = GetComponent<SpriteRenderer>();
-        rb          = GetComponent<Rigidbody2D>();
-        col         = GetComponent<Collider2D>();
-        player      = GameObject.FindGameObjectWithTag("Player")?.transform;
-        playerLayer = LayerMask.GetMask("Player"); // Player 레이어만 감지
+        sr            = GetComponent<SpriteRenderer>();
+        rb            = GetComponent<Rigidbody2D>();
+        player        = GameObject.FindGameObjectWithTag("Player")?.transform;
+        playerMask    = LayerMask.GetMask("Player");
+        originalColor = sr != null ? sr.color : Color.white;
 
         if (rb != null)
         {
+            // [수정] Dynamic에서 Kinematic으로 변경
+            // 물리 엔진에 의해 밀려나거나 엉키는 현상을 원천 차단합니다.
             rb.bodyType               = RigidbodyType2D.Kinematic;
-            rb.gravityScale           = 0f;
             rb.constraints            = RigidbodyConstraints2D.FreezeRotation;
-            rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-            rb.useFullKinematicContacts = true; // 충돌 감지 유지
+            rb.simulated              = true;
         }
 
-        // 콜라이더 처음부터 켜둠 (Ground 충돌 필요)
-        // isTrigger는 false → Ground/벽 충돌 유지
-        if (col != null)
-        {
-            col.isTrigger = false;
-            col.enabled   = true;
-        }
+        // [수정] 여러 마리가 수학적으로 완벽히 일치하는 좌표를 가지는 것을 방지하기 위해 
+        // 각 인스턴스마다 미세한 시간 차이(오프셋)를 부여합니다.
+        recordDelay += Random.Range(-0.03f, 0.03f);
 
-        // Room 탐색
-        Room[] allRooms = FindObjectsByType<Room>(FindObjectsSortMode.None);
-        foreach (Room room in allRooms)
-        {
-            if (room.GetBounds().Contains(transform.position))
-            {
-                myRoom = room;
-                break;
-            }
-        }
+        if (sr != null)
+            sr.color = new Color(originalColor.r, originalColor.g, originalColor.b, 0f);
 
+        StartCoroutine(FadeIn());
         StartCoroutine(ActivateAfterDelay());
     }
 
-    private bool canDamagePlayer = false; // recordDelay 후 플레이어 피격 가능
+    // ── 페이드인 ────────────────────────────────
+    IEnumerator FadeIn()
+    {
+        for (float t = 0f; t < fadeInTime; t += Time.deltaTime)
+        {
+            if (sr != null)
+                sr.color = new Color(originalColor.r, originalColor.g, originalColor.b,
+                                     Mathf.Lerp(0f, 1f, t / fadeInTime));
+            yield return null;
+        }
+        if (sr != null)
+            sr.color = new Color(originalColor.r, originalColor.g, originalColor.b, 1f);
+    }
 
+    // ── recordDelay 후 피격 활성화 ──────────────
     IEnumerator ActivateAfterDelay()
     {
         yield return new WaitForSeconds(recordDelay);
-        if (!isDead)
-        {
-            canDamagePlayer = true;
-            Debug.Log("Shadow 충돌 활성화");
-        }
+        if (!isDead) canDamagePlayer = true;
     }
 
+    // ── 경로 기록 + 플레이어 감지 ───────────────
     void Update()
     {
         if (player == null || isDead) return;
+
         _records.Enqueue(new PositionRecord(player.position, Time.time));
-    }
 
-    void FixedUpdate()
-    {
-        if (rb == null || isDead) return;
-        if (_records.Count == 0) return;
-        if (Time.time - _records.Peek().time < recordDelay) return;
+        if (!canDamagePlayer) return;
 
-        Vector3 targetPos = transform.position;
+        Collider2D hit = Physics2D.OverlapCircle(transform.position, detectRadius, playerMask);
+        if (hit == null) return;
 
-        while (_records.Count > 0 && Time.time - _records.Peek().time >= recordDelay)
-            targetPos = _records.Dequeue().position;
-
-        if (!isInitialized)
-        {
-            isInitialized      = true;
-            transform.position = targetPos;
-            rb.position        = targetPos;
-        }
-        else
-        {
-            rb.MovePosition(targetPos);
-        }
-
-        if (sr != null && player != null)
-            sr.flipX = player.position.x < transform.position.x;
-    }
-
-    // Trigger 방식으로 플레이어 감지
-    void OnCollisionEnter2D(Collision2D other)
-    {
-        if (isDead || !canDamagePlayer) return;
-        if (((1 << other.gameObject.layer) & playerLayer) == 0) return;
-
-        PlayerHealth ph = other.collider.GetComponent<PlayerHealth>();
+        PlayerHealth ph = hit.GetComponent<PlayerHealth>();
         if (ph == null) return;
 
         ph.TakeDamage((int)damage);
@@ -131,24 +103,59 @@ public class ShadowEnemy : MonoBehaviour
         StartCoroutine(Die());
     }
 
+    // ── 경로 재생 ───────────────────────────────
+    void FixedUpdate()
+    {
+        if (rb == null || isDead) return;
+        if (_records.Count == 0) return;
+
+        Vector3 targetPos = transform.position;
+        bool hasTarget = false;
+
+        // [수정] recordDelay만큼 시간이 지난 기록 중 가장 최근 데이터를 추출
+        while (_records.Count > 0 && Time.time - _records.Peek().time >= recordDelay)
+        {
+            targetPos = _records.Dequeue().position;
+            hasTarget = true;
+        }
+
+        // 이번 물리 프레임에 갱신할 타겟 좌표가 없다면 이동 단계를 건너뜁니다.
+        if (!hasTarget) return;
+
+        if (!isInitialized)
+        {
+            isInitialized      = true;
+            rb.position        = targetPos;
+        }
+        else
+        {
+            // [수정] 기존 linearVelocity 속도 주입 방식을 버리고 MovePosition을 사용합니다.
+            // 인스펙터 창에서 Rigidbody2D의 Interpolate(보간)를 'Interpolate'로 설정하면 더욱 부드럽게 움직입니다.
+            rb.MovePosition(targetPos);
+        }
+
+        if (sr != null && player != null)
+            sr.flipX = player.position.x < transform.position.x;
+    }
+
+    // ── 사망 ────────────────────────────────────
     IEnumerator Die()
     {
-        // 콜라이더 비활성화 (중복 충돌 방지)
-        if (col != null) col.enabled = false;
-        if (rb != null)  rb.linearVelocity = Vector2.zero;
-
-        // 페이드 아웃
+        // [수정] Kinematic이므로 속도를 제로로 만드는 대신 물리 시뮬레이션을 정지하거나 그대로 둡니다.
         float fadeDuration = 0.5f;
         for (float t = 0f; t < fadeDuration; t += Time.deltaTime)
         {
             if (sr != null)
-            {
-                Color c = sr.color;
-                sr.color = new Color(c.r, c.g, c.b, Mathf.Lerp(1f, 0f, t / fadeDuration));
-            }
+                sr.color = new Color(originalColor.r, originalColor.g, originalColor.b,
+                                     Mathf.Lerp(1f, 0f, t / fadeDuration));
             yield return null;
         }
-
         Destroy(gameObject);
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+        Gizmos.DrawWireSphere(transform.position, detectRadius);
     }
 }

@@ -226,28 +226,45 @@ public class CoreXBoss : MonoBehaviour, IDamageable
         float  minY   = bounds.min.y + serverEdgeMargin;
         float  maxY   = bounds.max.y - serverEdgeMargin;
 
-        // Ghost 소환
+        // Ghost 소환 - 각각 다른 속도로 자연스럽게 간격 유지
         int totalGhost = ghostSummonCount + bonusCount;
         for (int i = 0; i < totalGhost; i++)
         {
             if (ghostPrefab == null) break;
-            Vector2 pos = new Vector2(Random.Range(minX, maxX), Random.Range(minY, maxY));
-            Instantiate(ghostPrefab, pos, Quaternion.identity);
+            Vector2    pos = new Vector2(Random.Range(minX, maxX), Random.Range(minY, maxY));
+            GameObject obj = Instantiate(ghostPrefab, pos, Quaternion.identity);
+
+            // 속도를 다르게 설정 (0.8 ~ 1.4 범위)
+            GhostEnemy ge = obj.GetComponent<GhostEnemy>();
+            if (ge != null)
+                ge.moveSpeed = Random.Range(0.8f, 1.4f);
         }
 
-        // Shadow 소환 - 플레이어 위치에 소환
-        int totalShadow = shadowSummonCount;
-        for (int i = 0; i < totalShadow; i++)
-        {
-            if (shadowPrefab == null || player == null) break;
-            // 살짝 오프셋으로 겹침 방지
-            Vector2 offset   = Random.insideUnitCircle * 0.5f;
-            Vector3 spawnPos = player.position + new Vector3(offset.x, 0f, 0f);
-            Instantiate(shadowPrefab, spawnPos, Quaternion.identity);
-        }
+        // Shadow 시간차 소환 (겹침 방지)
+        StartCoroutine(SummonShadowsSequential());
     }
 
-    /// <summary>서버가 파괴됐을 때 ServerNode에서 호출</summary>
+    /// <summary>
+    /// Shadow를 시간차로 소환
+    /// 각 Shadow가 다른 타이밍에 나와서 겹치지 않음
+    /// </summary>
+    IEnumerator SummonShadowsSequential()
+    {
+        for (int i = 0; i < shadowSummonCount; i++)
+        {
+            if (isDead || shadowPrefab == null || player == null) yield break;
+
+            float      dirX     = (i % 2 == 0) ? 3f : -3f;
+            Vector3    spawnPos = player.position + new Vector3(dirX, 0f, 0f);
+            GameObject obj      = Instantiate(shadowPrefab, spawnPos, Quaternion.identity);
+
+            ShadowEnemy se = obj.GetComponent<ShadowEnemy>();
+            if (se != null)
+                se.recordDelay = 3f + i * 3f; // 3초, 6초, 9초 ...
+
+            yield return new WaitForSeconds(2f);
+        }
+    }
     public void OnServerDestroyed()
     {
         serversAlive     = Mathf.Max(0, serversAlive - 1);

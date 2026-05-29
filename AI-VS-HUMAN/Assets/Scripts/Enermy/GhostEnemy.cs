@@ -35,7 +35,6 @@ public class GhostEnemy : MonoBehaviour
         detectionRangeSqr = detectionRange * detectionRange;
 
         // 소환된 위치 기준으로 속한 Room 자동 탐색
-        // 자식으로 배치 안 해도 됨
         Room[] allRooms = FindObjectsByType<Room>(FindObjectsSortMode.None);
         foreach (Room room in allRooms)
         {
@@ -80,7 +79,7 @@ public class GhostEnemy : MonoBehaviour
         if (sr != null) sr.flipX = player.position.x < transform.position.x;
     }
 
-    // Enter/Stay 중복 제거 → 공통 함수로
+    // Enter/Stay 
     void OnTriggerEnter2D(Collider2D other) => TryDamagePlayer(other);
     void OnTriggerStay2D(Collider2D other)  => TryDamagePlayer(other);
 
