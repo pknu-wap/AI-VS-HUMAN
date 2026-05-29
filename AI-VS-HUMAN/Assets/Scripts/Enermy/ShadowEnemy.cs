@@ -1,9 +1,12 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 /// <summary>
-/// Shadow 몬스터 - 이펙트 없는 버전
-/// - 플레이어 이동 경로를 recordDelay 초 후 그대로 재생
+/// Shadow 몬스터
+/// - 시작 시 같은 룸에 플레이어 있으면 즉시 텔레포트
+/// - recordDelay 동안 기록 수집 + 충돌 판정 없음
+/// - recordDelay 후 충돌 판정 활성화 + 정상 이동
 /// - 플레이어와 충돌 시 데미지 1 + 즉시 소멸
 /// </summary>
 public class ShadowEnemy : MonoBehaviour
@@ -21,29 +24,66 @@ public class ShadowEnemy : MonoBehaviour
 
     private Queue<PositionRecord> _records = new Queue<PositionRecord>();
 
-    private Transform   player;
-    private Rigidbody2D rb;
+    private Transform      player;
+    private Rigidbody2D    rb;
     private SpriteRenderer sr;
-    private bool        isDead = false;
+    private Collider2D     col;
+    private Room           myRoom;
+    private bool           isDead        = false;
+    private bool           isInitialized = false;
+
+    private LayerMask playerLayer;
 
     void Start()
     {
-        sr     = GetComponent<SpriteRenderer>();
-        rb     = GetComponent<Rigidbody2D>();
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        sr          = GetComponent<SpriteRenderer>();
+        rb          = GetComponent<Rigidbody2D>();
+        col         = GetComponent<Collider2D>();
+        player      = GameObject.FindGameObjectWithTag("Player")?.transform;
+        playerLayer = LayerMask.GetMask("Player"); // Player 레이어만 감지
 
         if (rb != null)
         {
-            rb.bodyType               = RigidbodyType2D.Dynamic;
+            rb.bodyType               = RigidbodyType2D.Kinematic;
+            rb.gravityScale           = 0f;
             rb.constraints            = RigidbodyConstraints2D.FreezeRotation;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            rb.useFullKinematicContacts = true; // 충돌 감지 유지
         }
 
-        Collider2D col = GetComponent<Collider2D>();
-        if (col != null) col.isTrigger = false;
+        // 콜라이더 처음부터 켜둠 (Ground 충돌 필요)
+        // isTrigger는 false → Ground/벽 충돌 유지
+        if (col != null)
+        {
+            col.isTrigger = false;
+            col.enabled   = true;
+        }
+
+        // Room 탐색
+        Room[] allRooms = FindObjectsByType<Room>(FindObjectsSortMode.None);
+        foreach (Room room in allRooms)
+        {
+            if (room.GetBounds().Contains(transform.position))
+            {
+                myRoom = room;
+                break;
+            }
+        }
+
+        StartCoroutine(ActivateAfterDelay());
     }
 
-    private bool isInitialized = false; // 첫 위치 설정 여부
+    private bool canDamagePlayer = false; // recordDelay 후 플레이어 피격 가능
+
+    IEnumerator ActivateAfterDelay()
+    {
+        yield return new WaitForSeconds(recordDelay);
+        if (!isDead)
+        {
+            canDamagePlayer = true;
+            Debug.Log("Shadow 충돌 활성화");
+        }
+    }
 
     void Update()
     {
@@ -57,37 +97,58 @@ public class ShadowEnemy : MonoBehaviour
         if (_records.Count == 0) return;
         if (Time.time - _records.Peek().time < recordDelay) return;
 
-        while (_records.Count > 0 && Time.time - _records.Peek().time >= recordDelay)
-        {
-            PositionRecord record = _records.Dequeue();
+        Vector3 targetPos = transform.position;
 
-            // 첫 이동은 MovePosition이 아닌 텔레포트로 처리
-            if (!isInitialized)
-            {
-                isInitialized      = true;
-                transform.position = record.position;
-                rb.position        = record.position;
-            }
-            else
-            {
-                rb.MovePosition(record.position);
-            }
+        while (_records.Count > 0 && Time.time - _records.Peek().time >= recordDelay)
+            targetPos = _records.Dequeue().position;
+
+        if (!isInitialized)
+        {
+            isInitialized      = true;
+            transform.position = targetPos;
+            rb.position        = targetPos;
+        }
+        else
+        {
+            rb.MovePosition(targetPos);
         }
 
         if (sr != null && player != null)
             sr.flipX = player.position.x < transform.position.x;
     }
 
+    // Trigger 방식으로 플레이어 감지
     void OnCollisionEnter2D(Collision2D other)
     {
-        if (isDead) return;
-        if (!other.collider.CompareTag("Player")) return;
+        if (isDead || !canDamagePlayer) return;
+        if (((1 << other.gameObject.layer) & playerLayer) == 0) return;
 
         PlayerHealth ph = other.collider.GetComponent<PlayerHealth>();
         if (ph == null) return;
 
         ph.TakeDamage((int)damage);
         isDead = true;
-        Destroy(gameObject); // 데미지 주고 즉시 소멸
+        StartCoroutine(Die());
+    }
+
+    IEnumerator Die()
+    {
+        // 콜라이더 비활성화 (중복 충돌 방지)
+        if (col != null) col.enabled = false;
+        if (rb != null)  rb.linearVelocity = Vector2.zero;
+
+        // 페이드 아웃
+        float fadeDuration = 0.5f;
+        for (float t = 0f; t < fadeDuration; t += Time.deltaTime)
+        {
+            if (sr != null)
+            {
+                Color c = sr.color;
+                sr.color = new Color(c.r, c.g, c.b, Mathf.Lerp(1f, 0f, t / fadeDuration));
+            }
+            yield return null;
+        }
+
+        Destroy(gameObject);
     }
 }
