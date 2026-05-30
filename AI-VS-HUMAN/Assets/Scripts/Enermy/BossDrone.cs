@@ -1,5 +1,5 @@
 ﻿// 거대 드론 보스의 이동, 탄막 패턴, 회복 드론 소환, 체력 UI, 페이즈 이벤트를 담당하는 스크립트
-// 플레이어를 감지하면 패턴 루프를 시작하고, 체력이 절반 이하가 되면 BossRoomController에 이벤트를 보낸다.
+// 플레이어를 감지하면 패턴 루프를 시작하고, 체력이 절반 이하가 되면 1스테이지 보스룸 컨트롤러에 이벤트를 보낸다.
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;

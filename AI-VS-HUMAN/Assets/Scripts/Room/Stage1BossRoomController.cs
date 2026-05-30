@@ -3,7 +3,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class BossRoomController : MonoBehaviour
+public class Stage1BossRoomController : MonoBehaviour
 {
     private enum BossRoomPhase
     {
@@ -222,7 +222,7 @@ public class BossRoomController : MonoBehaviour
             return;
         }
 
-        Debug.LogWarning("BossRoomController has no BossDrone or bossPrefab to spawn.", this);
+        Debug.LogWarning("Stage1BossRoomController has no BossDrone or bossPrefab to spawn.", this);
     }
 
     private Vector3 GetBossSpawnPosition()

@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 5718543447239090922}
   - component: {fileID: 1434759123410991423}
   - component: {fileID: 2062582714990080198}
+  - component: {fileID: 1549743825}
+  - component: {fileID: 1569403240}
   - component: {fileID: 5126869983694611596}
   - component: {fileID: 6478410858440865184}
   m_Layer: 8
@@ -30,7 +32,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 32.59, y: 5.43, z: 0}
-  m_LocalScale: {x: 10, y: 8, z: 1}
+  m_LocalScale: {x: 5, y: 5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -108,18 +110,75 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CoreXBoss
   maxHp: 500
   fadeDuration: 2
-  serverPrefab: {fileID: 0}
+  serverPrefab: {fileID: 8767457870902211931, guid: ecf45cc50247d27408035541aa4b3dab, type: 3}
   serverCount: 4
   serverMinDist: 3
   serverEdgeMargin: 1.5
-  ghostPrefab: {fileID: 0}
-  shadowPrefab: {fileID: 0}
+  ghostPrefab: {fileID: 6609676312589147286, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+  shadowPrefab: {fileID: 7300447643921118898, guid: 2ad090a2eae61cb4b80af369d851cfe8, type: 3}
   summonInterval: 8
   baseSummonCount: 1
   ghostSummonCount: 1
   shadowSummonCount: 1
   vulnerableTime: 5
-  hpBar: {fileID: 0}
+  hpBar: {fileID: 1549743825}
+--- !u!114 &1549743825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8042641778956177536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03f87a6730258ce45b74b070a1801c16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossHpBar
+  bossName: CORE-X
+  maxHp: 500
+  hpBarColor: {r: 0.2, g: 0.8, b: 1, a: 1}
+  bgColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.8}
+  posY: -40
+  barHeight: 26
+--- !u!114 &1569403240
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8042641778956177536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7774e734790f4584b858e314b7a5e113, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossSafeZonePattern
+  boss: {fileID: 0}
+  bossTransform: {fileID: 5718543447239090922}
+  bossRoom: {fileID: 0}
+  player: {fileID: 0}
+  targetCamera: {fileID: 0}
+  startWhenBossDetectsPlayer: 0
+  requirePlayerInsideRoom: 1
+  bossDetectionRange: 20
+  initialDelay: 2
+  patternInterval: 4
+  safeZoneSize: 6
+  safeZoneMinSize: 3
+  safeZoneShrinkPerUse: 1
+  safeZoneWarningDuration: 3
+  safeZoneDamage: 1
+  safeZoneRoomPadding: 1
+  warningColor: {r: 0.2, g: 1, b: 0.35, a: 0.28}
+  borderColor: {r: 0.1, g: 1, b: 0.35, a: 0.95}
+  dangerOutsideColor: {r: 1, g: 0.05, b: 0.02, a: 0.38}
+  borderThickness: 0.12
+  flashMinAlpha: 0.25
+  flashFrequency: 10
+  dangerFadeInDuration: 0.35
+  dangerLeadTime: 0.8
+  safeZoneFadeInDuration: 0.6
+  safeZonePreviewAlpha: 0.35
+  sortingOrder: 5
 --- !u!50 &5126869983694611596
 Rigidbody2D:
   serializedVersion: 5

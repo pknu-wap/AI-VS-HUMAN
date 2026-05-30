@@ -5,6 +5,7 @@ public class BossSafeZonePattern : MonoBehaviour
 {
     [Header("References")]
     public BossDrone boss;
+    public Transform bossTransform;
     public Room bossRoom;
     public Transform player;
     public Camera targetCamera;
@@ -12,6 +13,7 @@ public class BossSafeZonePattern : MonoBehaviour
     [Header("Activation")]
     public bool startWhenBossDetectsPlayer = true;
     public bool requirePlayerInsideRoom = true;
+    public float bossDetectionRange = 20f;
     public float initialDelay = 2f;
     public float patternInterval = 8f;
 
@@ -133,15 +135,17 @@ public class BossSafeZonePattern : MonoBehaviour
         if (playerHealth != null && playerHealth.IsDead)
             return false;
 
-        if (boss != null)
+        Transform activeBossTransform = GetActiveBossTransform();
+        if (activeBossTransform != null)
         {
-            if (!boss.gameObject.activeInHierarchy)
+            if (!activeBossTransform.gameObject.activeInHierarchy)
                 return false;
 
             if (startWhenBossDetectsPlayer)
             {
-                float distance = Vector2.Distance(boss.transform.position, player.position);
-                if (distance > boss.detectionRange)
+                float range = boss != null ? boss.detectionRange : bossDetectionRange;
+                float distance = Vector2.Distance(activeBossTransform.position, player.position);
+                if (distance > range)
                     return false;
             }
         }
@@ -450,8 +454,19 @@ public class BossSafeZonePattern : MonoBehaviour
         if (boss == null)
             boss = GetComponent<BossDrone>();
 
+        if (bossTransform == null)
+        {
+            if (boss != null)
+                bossTransform = boss.transform;
+            else
+                bossTransform = transform;
+        }
+
         if (boss == null)
             boss = FindFirstObjectByType<BossDrone>();
+
+        if (bossTransform == null && boss != null)
+            bossTransform = boss.transform;
 
         if (bossRoom == null)
             ResolveBossRoom();
@@ -472,14 +487,29 @@ public class BossSafeZonePattern : MonoBehaviour
 
     private void ResolveBossRoom()
     {
-        BossRoomController controller = FindFirstObjectByType<BossRoomController>();
-        if (controller != null)
+        Stage1BossRoomController stage1Controller = FindFirstObjectByType<Stage1BossRoomController>();
+        if (stage1Controller != null)
         {
-            bossRoom = controller.bossRoom;
+            bossRoom = stage1Controller.bossRoom;
+            return;
+        }
+
+        Stage2BossRoomController stage2Controller = FindFirstObjectByType<Stage2BossRoomController>();
+        if (stage2Controller != null)
+        {
+            bossRoom = stage2Controller.bossRoom;
             return;
         }
 
         bossRoom = FindFirstObjectByType<Room>();
+    }
+
+    private Transform GetActiveBossTransform()
+    {
+        if (boss != null)
+            return boss.transform;
+
+        return bossTransform;
     }
 
     private void OnDestroy()

@@ -54,6 +54,15 @@ public class CoreXBoss : MonoBehaviour, IDamageable
     private Color          originalColor;
     private LayerMask      groundMask;
 
+    public void ConfigureForBossRoom(Room room, Transform targetPlayer, BossHpBar bossHpBar)
+    {
+        myRoom = room;
+        player = targetPlayer;
+
+        if (bossHpBar != null)
+            hpBar = bossHpBar;
+    }
+
     // ═══════════════════════════════════════════
     void Start()
     {
@@ -62,7 +71,11 @@ public class CoreXBoss : MonoBehaviour, IDamageable
         rb            = GetComponent<Rigidbody2D>();
         groundMask    = LayerMask.GetMask("Ground");
         originalColor = sr != null ? sr.color : Color.white;
-        player        = GameObject.FindGameObjectWithTag("Player")?.transform;
+        if (player == null)
+            player = GameObject.FindGameObjectWithTag("Player")?.transform;
+
+        if (hpBar == null)
+            hpBar = GetComponent<BossHpBar>();
 
         if (rb != null)
         {
@@ -71,13 +84,16 @@ public class CoreXBoss : MonoBehaviour, IDamageable
         }
 
         // 소환 위치 기준으로 속한 Room 자동 탐색
-        Room[] allRooms = FindObjectsByType<Room>(FindObjectsSortMode.None);
-        foreach (Room room in allRooms)
+        if (myRoom == null)
         {
-            if (room.GetBounds().Contains(transform.position))
+            Room[] allRooms = FindObjectsByType<Room>(FindObjectsSortMode.None);
+            foreach (Room room in allRooms)
             {
-                myRoom = room;
-                break;
+                if (room.GetBounds().Contains(transform.position))
+                {
+                    myRoom = room;
+                    break;
+                }
             }
         }
 
