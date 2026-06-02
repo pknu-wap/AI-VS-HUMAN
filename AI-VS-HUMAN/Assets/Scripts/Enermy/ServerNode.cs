@@ -20,9 +20,23 @@ public class ServerNode : MonoBehaviour, IDamageable
     // 파괴 시 호출할 보스 참조
     private CoreXBoss boss;
 
+    /// <summary>보스 참조 설정</summary>
     public void Init(CoreXBoss bossRef)
     {
         boss = bossRef;
+    }
+
+    /// <summary>다음 사이클에 서버 재사용을 위한 리셋</summary>
+    public void ResetServer()
+    {
+        isDead    = false;
+        currentHp = maxHp;
+        gameObject.SetActive(false); // 비활성화 상태로 대기
+
+        Collider2D col = GetComponent<Collider2D>();
+        if (col != null) col.enabled = true;
+
+        if (sr != null) sr.color = originalColor;
     }
 
     void Start()
@@ -74,6 +88,6 @@ public class ServerNode : MonoBehaviour, IDamageable
             yield return null;
         }
 
-        Destroy(gameObject);
+        gameObject.SetActive(false);
     }
 }

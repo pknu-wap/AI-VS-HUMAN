@@ -6,7 +6,7 @@ using System.Collections.Generic;
 /// Shadow 몬스터 - Celeste Badeline 방식 (수정 버전)
 /// - Rigidbody2D를 Kinematic으로 변경하여 물리 충돌로 인한 엉킴 방지
 /// - rb.MovePosition을 사용하여 물리 보간과 함께 부드러운 위치 수렴
-/// - 미세한 딜레이 오프셋을 추가하여 여러 마리가 완전히 하나로 겹치는 현상 방지
+/// - pathOffsetX를 통해 여러 마리가 겹치지 않고 간격을 두고 따라오도록 처리
 /// </summary>
 public class ShadowEnemy : MonoBehaviour
 {
@@ -15,6 +15,9 @@ public class ShadowEnemy : MonoBehaviour
     public float damage       = 1f;
     public float detectRadius = 0.4f;
     public float fadeInTime   = 1f;
+    
+    // CoreXBoss에서 접근해서 좌우 간격을 설정할 수 있도록 추가된 변수
+    public float pathOffsetX  = 0f; 
 
     private struct PositionRecord
     {
@@ -44,15 +47,13 @@ public class ShadowEnemy : MonoBehaviour
 
         if (rb != null)
         {
-            // [수정] Dynamic에서 Kinematic으로 변경
-            // 물리 엔진에 의해 밀려나거나 엉키는 현상을 원천 차단합니다.
+            // Dynamic에서 Kinematic으로 변경하여 물리 엔진에 의해 밀려나거나 엉키는 현상 차단
             rb.bodyType               = RigidbodyType2D.Kinematic;
             rb.constraints            = RigidbodyConstraints2D.FreezeRotation;
             rb.simulated              = true;
         }
 
-        // [수정] 여러 마리가 수학적으로 완벽히 일치하는 좌표를 가지는 것을 방지하기 위해 
-        // 각 인스턴스마다 미세한 시간 차이(오프셋)를 부여합니다.
+        // 여러 마리가 완벽히 일치하는 좌표를 가지는 것을 방지하기 위한 미세 오프셋
         recordDelay += Random.Range(-0.03f, 0.03f);
 
         if (sr != null)
@@ -95,6 +96,7 @@ public class ShadowEnemy : MonoBehaviour
         Collider2D hit = Physics2D.OverlapCircle(transform.position, detectRadius, playerMask);
         if (hit == null) return;
 
+        // ★ 정상적인 데미지 판정 로직 복구 완료
         PlayerHealth ph = hit.GetComponent<PlayerHealth>();
         if (ph == null) return;
 
@@ -112,15 +114,18 @@ public class ShadowEnemy : MonoBehaviour
         Vector3 targetPos = transform.position;
         bool hasTarget = false;
 
-        // [수정] recordDelay만큼 시간이 지난 기록 중 가장 최근 데이터를 추출
+        // recordDelay만큼 시간이 지난 기록 중 가장 최근 데이터를 추출
         while (_records.Count > 0 && Time.time - _records.Peek().time >= recordDelay)
         {
             targetPos = _records.Dequeue().position;
             hasTarget = true;
         }
 
-        // 이번 물리 프레임에 갱신할 타겟 좌표가 없다면 이동 단계를 건너뜁니다.
+        // 이번 물리 프레임에 갱신할 타겟 좌표가 없다면 건너뜀
         if (!hasTarget) return;
+
+        // ★ [핵심] 플레이어의 과거 위치를 가져온 후, x축으로 pathOffsetX만큼 떨어뜨립니다.
+        targetPos.x += pathOffsetX;
 
         if (!isInitialized)
         {
@@ -129,8 +134,7 @@ public class ShadowEnemy : MonoBehaviour
         }
         else
         {
-            // [수정] 기존 linearVelocity 속도 주입 방식을 버리고 MovePosition을 사용합니다.
-            // 인스펙터 창에서 Rigidbody2D의 Interpolate(보간)를 'Interpolate'로 설정하면 더욱 부드럽게 움직입니다.
+            // 부드러운 이동을 위한 MovePosition
             rb.MovePosition(targetPos);
         }
 
@@ -141,7 +145,6 @@ public class ShadowEnemy : MonoBehaviour
     // ── 사망 ────────────────────────────────────
     IEnumerator Die()
     {
-        // [수정] Kinematic이므로 속도를 제로로 만드는 대신 물리 시뮬레이션을 정지하거나 그대로 둡니다.
         float fadeDuration = 0.5f;
         for (float t = 0f; t < fadeDuration; t += Time.deltaTime)
         {

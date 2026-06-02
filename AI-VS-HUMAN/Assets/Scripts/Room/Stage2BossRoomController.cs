@@ -20,6 +20,12 @@ public class Stage2BossRoomController : MonoBehaviour
     private PlayerHealth playerHealth;
     private bool bossSpawned;
 
+    
+    [Header("Boss Servers")]
+    public ServerNode[] phase1Servers;
+    public ServerNode[] phase2Servers;
+    
+    
     private void Awake()
     {
         ResolveReferences();
@@ -101,7 +107,7 @@ public class Stage2BossRoomController : MonoBehaviour
             return;
 
         BossHpBar hpBar = spawnedBoss.GetComponent<BossHpBar>();
-        spawnedBoss.ConfigureForBossRoom(bossRoom, player, hpBar);
+        spawnedBoss.ConfigureForBossRoom(bossRoom, player, hpBar, phase1Servers, phase2Servers);
 
         BossSafeZonePattern safeZonePattern = spawnedBoss.GetComponent<BossSafeZonePattern>();
         if (safeZonePattern != null)
