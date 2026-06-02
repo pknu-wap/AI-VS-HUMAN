@@ -110,18 +110,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CoreXBoss
   maxHp: 500
   fadeDuration: 2
-  serverPrefab: {fileID: 8767457870902211931, guid: ecf45cc50247d27408035541aa4b3dab, type: 3}
-  serverCount: 4
-  serverMinDist: 3
-  serverEdgeMargin: 1.5
   ghostPrefab: {fileID: 6609676312589147286, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
   shadowPrefab: {fileID: 7300447643921118898, guid: 2ad090a2eae61cb4b80af369d851cfe8, type: 3}
-  summonInterval: 8
-  baseSummonCount: 1
+  summonInterval: 6
   ghostSummonCount: 1
   shadowSummonCount: 1
-  vulnerableTime: 5
-  hpBar: {fileID: 1549743825}
+  trapCount: 2
+  trapInterval: 10
+  trapDuration: 5
+  trapBindDuration: 2
+  trapWidth: 3
+  trapBoltCount: 4
+  trapColor: {r: 0.3, g: 0.7, b: 1, a: 1}
+  dashWindupTime: 0.8
+  dashMoveTime: 0.3
+  dashSpeed: 15
+  dashCooldown: 1.5
+  groggyDuration: 1
+  dashDamage: 1
+  phase2MaxHp: 1000
+  phase2Color: {r: 0.3, g: 0, b: 0.5, a: 1}
+  phaseTransitionTime: 2
+  hpFillDuration: 2
 --- !u!114 &1549743825
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -136,7 +146,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossHpBar
   bossName: CORE-X
   maxHp: 500
-  hpBarColor: {r: 0.2, g: 0.8, b: 1, a: 1}
+  hpBarColor: {r: 1, g: 0, b: 0, a: 1}
   bgColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.8}
   posY: -40
   barHeight: 26
@@ -205,7 +215,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 0
+  m_Constraints: 4
 --- !u!61 &6478410858440865184
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -236,7 +246,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
