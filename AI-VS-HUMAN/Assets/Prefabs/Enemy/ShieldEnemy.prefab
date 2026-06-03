@@ -19,7 +19,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &6596932916886513284
 Transform:
   m_ObjectHideFlags: 0
@@ -172,15 +172,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShieldEnemy
   maxHp: 30
+  fadeDuration: 1.5
   detectionRange: 8
   attackRange: 6
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 128
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 0
-  fadeDuration: 1.5
   moveSpeed: 0
   stopDistance: 2
   shieldTransform: {fileID: 6706278038650792234}

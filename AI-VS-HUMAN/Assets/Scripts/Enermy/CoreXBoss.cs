@@ -1,4 +1,5 @@
 using System.Collections;
+using System;
 using UnityEngine;
 
 [RequireComponent(typeof(CoreXIntroPhase))]
@@ -55,6 +56,7 @@ public class CoreXBoss : MonoBehaviour, IDamageable
     public Rigidbody2D Rigidbody => rb;
     public Color OriginalColor => originalColor;
     public CoreXDashPattern DashPattern => dashPattern;
+    public event Action Died;
 
     public void ConfigureForBossRoom(Room room, Transform playerTransform, BossHpBar bar,
                                      ServerNode[] p1Servers, ServerNode[] p2Servers)
@@ -259,6 +261,7 @@ public class CoreXBoss : MonoBehaviour, IDamageable
     private IEnumerator Die()
     {
         isDead = true;
+        Died?.Invoke();
         StopAllCoroutines();
         StopPhase2Patterns();
         ClearSpawnedMinions();

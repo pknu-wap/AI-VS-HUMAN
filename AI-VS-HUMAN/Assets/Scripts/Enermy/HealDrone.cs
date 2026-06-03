@@ -1,16 +1,16 @@
-// 보스 회복 패턴에서 화면 밖에서 날아와 보스에게 붙는 미니 드론을 담당하는 스크립트
-// 보스에게 닿기 전에 파괴되면 회복하지 않고, 보스에게 붙으면 계속 회복시키다가 체력이 다하면 사라진다.
+﻿// 蹂댁뒪 ?뚮났 ?⑦꽩?먯꽌 ?붾㈃ 諛뽰뿉???좎븘? 蹂댁뒪?먭쾶 遺숇뒗 誘몃땲 ?쒕줎???대떦?섎뒗 ?ㅽ겕由쏀듃
+// 蹂댁뒪?먭쾶 ?욧린 ?꾩뿉 ?뚭눼?섎㈃ ?뚮났?섏? ?딄퀬, 蹂댁뒪?먭쾶 遺숈쑝硫?怨꾩냽 ?뚮났?쒗궎?ㅺ? 泥대젰???ㅽ븯硫??щ씪吏꾨떎.
 using UnityEngine;
 using System.Collections;
 
 public class HealDrone : MonoBehaviour, IDamageable
 {
-    [Header("체력")]
+    [Header("泥대젰")]
     public float maxHp = 50f;
     public float fadeDuration = 0.6f;
     public float lifeDrainPerSecond = 10f;
 
-    [Header("이동")]
+    [Header("?대룞")]
     public float moveSpeed = 6f;
     public float hoverAmplitude = 0.25f;
     public float hoverFrequency = 6f;
@@ -21,16 +21,16 @@ public class HealDrone : MonoBehaviour, IDamageable
     private float hoverTime;
     private bool isDead;
     private bool isAttached;
-    private BossDrone boss;
+    private GiantDrone boss;
     private SpriteRenderer spriteRenderer;
     private Collider2D droneCollider;
     private Rigidbody2D rb;
     private Coroutine hitFlashCoroutine;
     private Color originalColor = Color.white;
 
-    public void Init(BossDrone bossRef, float spawnSide)
+    public void Init(GiantDrone bossRef, float spawnSide)
     {
-        // 보스 기준 좌우 어느 쪽에 붙을지 저장하고, 재소환 때마다 런타임 상태를 초기화한다.
+        // 蹂댁뒪 湲곗? 醫뚯슦 ?대뒓 履쎌뿉 遺숈쓣吏 ??ν븯怨? ?ъ냼???뚮쭏???고????곹깭瑜?珥덇린?뷀븳??
         boss = bossRef;
         side = Mathf.Sign(spawnSide);
         if (Mathf.Approximately(side, 0f))
@@ -98,7 +98,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     private void AttachToBoss()
     {
-        // 보스에게 붙은 뒤에도 콜라이더를 유지해서 플레이어 총알로 파괴할 수 있게 한다.
+        // 蹂댁뒪?먭쾶 遺숈? ?ㅼ뿉??肄쒕씪?대뜑瑜??좎??댁꽌 ?뚮젅?댁뼱 珥앹븣濡??뚭눼?????덇쾶 ?쒕떎.
         if (isDead || isAttached)
             return;
 
@@ -112,7 +112,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     private void DrainLifeOverTime()
     {
-        // 보스에 붙어 회복하는 동안 드론 자체의 체력이 서서히 줄어, 플레이어가 쏘지 않아도 결국 사라진다.
+        // 蹂댁뒪??遺숈뼱 ?뚮났?섎뒗 ?숈븞 ?쒕줎 ?먯껜??泥대젰???쒖꽌??以꾩뼱, ?뚮젅?댁뼱媛 ?섏? ?딆븘??寃곌뎅 ?щ씪吏꾨떎.
         currentHp -= lifeDrainPerSecond * Time.deltaTime;
         if (currentHp <= 0f)
             StartCoroutine(Die(true));
@@ -173,7 +173,7 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     private void ConfigurePhysics()
     {
-        // Transform 기반 추적 이동을 쓰므로 물리 엔진이 드론을 아래로 떨어뜨리거나 벽에 밀어넣지 않게 고정한다.
+        // Transform 湲곕컲 異붿쟻 ?대룞???곕?濡?臾쇰━ ?붿쭊???쒕줎???꾨옒濡??⑥뼱?⑤━嫄곕굹 踰쎌뿉 諛?대꽔吏 ?딄쾶 怨좎젙?쒕떎.
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;

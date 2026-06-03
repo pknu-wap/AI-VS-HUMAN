@@ -219,8 +219,14 @@ public class AssaultRifle : MonoBehaviour
             return transform.position;
 
         Vector3 screenPosition = Mouse.current.position.ReadValue();
-        screenPosition.z = Mathf.Abs(_cam.transform.position.z - transform.position.z);
+        screenPosition.z = GetScreenToWorldDepth(_cam);
         return _cam.ScreenToWorldPoint(screenPosition);
+    }
+
+    private float GetScreenToWorldDepth(Camera targetCamera)
+    {
+        float depth = Mathf.Abs(targetCamera.transform.position.z - transform.position.z);
+        return Mathf.Max(depth, targetCamera.nearClipPlane + 0.01f);
     }
 
     private static Material GetLineMaterial()

@@ -19,7 +19,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &6401744938837028290
 Transform:
   m_ObjectHideFlags: 0
@@ -172,15 +172,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DroneEnemy
   maxHp: 30
+  fadeDuration: 1.5
   detectionRange: 8
   attackRange: 6
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 128
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 0
-  fadeDuration: 1.5
   droneBulletPrefab: {fileID: 1618581445746002526, guid: 7700b9fcffc0e3842929c3def0be8b6c, type: 3}
   firePoint: {fileID: 7270819553076695478}
   bulletDamage: 1

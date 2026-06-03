@@ -1,5 +1,6 @@
-// 보스룸 전용 카메라 페이즈와 보스 소환 시점을 관리하는 스크립트입니다.
-// 플레이어가 보스룸에 들어오면 보스를 지정 위치에 소환하고, 보스 체력이 절반 이하가 되면 2페이즈 카메라 스크롤을 시작합니다.
+﻿// 蹂댁뒪猷??꾩슜 移대찓???섏씠利덉? 蹂댁뒪 ?뚰솚 ?쒖젏??愿由ы븯???ㅽ겕由쏀듃?낅땲??
+// ?뚮젅?댁뼱媛 蹂댁뒪猷몄뿉 ?ㅼ뼱?ㅻ㈃ 蹂댁뒪瑜?吏???꾩튂???뚰솚?섍퀬, 蹂댁뒪 泥대젰???덈컲 ?댄븯媛 ?섎㈃ 2?섏씠利?移대찓???ㅽ겕濡ㅼ쓣 ?쒖옉?⑸땲??
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -16,14 +17,16 @@ public class Stage1BossRoomController : MonoBehaviour
     public Transform player;
     public RoomCameraController roomCameraController;
     public Room bossRoom;
-    public BossDrone boss;
+    public GiantDrone boss;
     private PlayerHealth playerHealth;
 
     [Header("Boss Spawn")]
-    public BossDrone bossPrefab;
+    public GiantDrone bossPrefab;
     public Transform bossSpawnPoint;
     public Vector3 bossSpawnPosition = new Vector3(32f, 8f, 0f);
     public bool hideSceneBossUntilRoomEntered = true;
+    public bool spawnOnlyOnce = true;
+    public bool resetOnPlayerDeath = true;
 
     [Header("Phase 1 Temporary Wall")]
     public bool createPhase1CeilingWall = true;
@@ -52,11 +55,17 @@ public class Stage1BossRoomController : MonoBehaviour
     public bool enterWhenPlayerInsideRoom = true;
     public bool startPhase2WhenBossHalfHealth = true;
 
+    [Header("Boss Clear Cleanup")]
+    public bool destroyEnemiesInsideRoomOnBossDeath = true;
+    public List<GameObject> enemiesToDestroyOnBossDeath = new List<GameObject>();
+
     private BossRoomPhase phase = BossRoomPhase.Waiting;
     private Camera cam;
     private bool phase2Started;
     private float phase2Timer;
     private bool bossSpawned;
+    private bool bossCleared;
+    private bool bossWasInstantiated;
     private GameObject phase1CeilingWall;
     private GameObject phase1EntranceWall;
 
@@ -119,8 +128,14 @@ public class Stage1BossRoomController : MonoBehaviour
 
     public void EnterBossRoom()
     {
-        // 보스룸에 처음 입장했을 때 일반 룸 카메라를 끄고 보스룸 전용 제어로 전환합니다.
+        // 蹂댁뒪猷몄뿉 泥섏쓬 ?낆옣?덉쓣 ???쇰컲 猷?移대찓?쇰? ?꾧퀬 蹂댁뒪猷??꾩슜 ?쒖뼱濡??꾪솚?⑸땲??
+        if (bossCleared)
+            return;
+
         if (phase != BossRoomPhase.Waiting)
+            return;
+
+        if (bossSpawned && spawnOnlyOnce)
             return;
 
         ResolveReferences();
@@ -142,7 +157,7 @@ public class Stage1BossRoomController : MonoBehaviour
 
     public void StartPhase2()
     {
-        // 보스 체력 이벤트와 인스펙터 테스트 모두 이 메서드를 통해 2페이즈를 시작합니다.
+        // 蹂댁뒪 泥대젰 ?대깽?몄? ?몄뒪?숉꽣 ?뚯뒪??紐⑤몢 ??硫붿꽌?쒕? ?듯빐 2?섏씠利덈? ?쒖옉?⑸땲??
         if (phase2Started)
             return;
 
@@ -158,7 +173,7 @@ public class Stage1BossRoomController : MonoBehaviour
 
     private void ResolveReferences()
     {
-        // 인스펙터 참조가 비어 있어도 씬 안의 기본 오브젝트를 찾아 최대한 자동 연결합니다.
+        // ?몄뒪?숉꽣 李몄“媛 鍮꾩뼱 ?덉뼱?????덉쓽 湲곕낯 ?ㅻ툕?앺듃瑜?李얠븘 理쒕????먮룞 ?곌껐?⑸땲??
         if (bossRoom == null)
             bossRoom = GetComponent<Room>();
 
@@ -175,8 +190,8 @@ public class Stage1BossRoomController : MonoBehaviour
         if (roomCameraController == null && Camera.main != null)
             roomCameraController = Camera.main.GetComponent<RoomCameraController>();
 
-        if (boss == null && (!hideSceneBossUntilRoomEntered || phase != BossRoomPhase.Waiting))
-            boss = FindFirstObjectByType<BossDrone>();
+        if (boss == null && bossPrefab == null && (!hideSceneBossUntilRoomEntered || phase != BossRoomPhase.Waiting))
+            boss = FindFirstObjectByType<GiantDrone>();
 
         if (cam == null)
         {
@@ -193,9 +208,11 @@ public class Stage1BossRoomController : MonoBehaviour
         if (!hideSceneBossUntilRoomEntered || boss == null || bossSpawned)
             return;
 
-        // 씬에 미리 배치된 보스는 입장 전에는 보이지 않게 두고, 입장 순간 지정 위치에서 활성화합니다.
+        // ?ъ뿉 誘몃━ 諛곗튂??蹂댁뒪???낆옣 ?꾩뿉??蹂댁씠吏 ?딄쾶 ?먭퀬, ?낆옣 ?쒓컙 吏???꾩튂?먯꽌 ?쒖꽦?뷀빀?덈떎.
         if (boss.gameObject.scene.IsValid())
+        {
             boss.gameObject.SetActive(false);
+        }
     }
 
     private void SpawnBossIfNeeded()
@@ -203,31 +220,32 @@ public class Stage1BossRoomController : MonoBehaviour
         if (bossSpawned)
             return;
 
-        Vector3 spawnPosition = GetBossSpawnPosition();
-
         if (boss != null)
         {
             boss.gameObject.SetActive(true);
-            boss.PrepareForBossRoomSpawn(spawnPosition, cam);
+            boss.PrepareForBossRoomActivation(cam);
             bossSpawned = true;
+            bossWasInstantiated = false;
             return;
         }
 
         if (bossPrefab != null)
         {
+            Vector3 spawnPosition = GetBossSpawnPosition();
             boss = Instantiate(bossPrefab, spawnPosition, Quaternion.identity);
             boss.name = bossPrefab.name;
             boss.PrepareForBossRoomSpawn(spawnPosition, cam);
             bossSpawned = true;
+            bossWasInstantiated = true;
             return;
         }
 
-        Debug.LogWarning("Stage1BossRoomController has no BossDrone or bossPrefab to spawn.", this);
+        Debug.LogWarning("Stage1BossRoomController has no GiantDrone or bossPrefab to spawn.", this);
     }
 
     private Vector3 GetBossSpawnPosition()
     {
-        // Transform을 지정하면 그 위치를 우선 사용하고, 없으면 인스펙터의 월드 좌표를 사용합니다.
+        // Transform??吏?뺥븯硫?洹??꾩튂瑜??곗꽑 ?ъ슜?섍퀬, ?놁쑝硫??몄뒪?숉꽣???붾뱶 醫뚰몴瑜??ъ슜?⑸땲??
         if (bossSpawnPoint != null)
             return bossSpawnPoint.position;
 
@@ -241,12 +259,17 @@ public class Stage1BossRoomController : MonoBehaviour
 
         boss.HalfHealthReached -= OnBossHalfHealthReached;
         boss.HalfHealthReached += OnBossHalfHealthReached;
+        boss.Died -= OnBossDied;
+        boss.Died += OnBossDied;
     }
 
     private void UnsubscribeFromBoss()
     {
         if (boss != null)
+        {
             boss.HalfHealthReached -= OnBossHalfHealthReached;
+            boss.Died -= OnBossDied;
+        }
     }
 
     private void OnBossHalfHealthReached()
@@ -255,9 +278,29 @@ public class Stage1BossRoomController : MonoBehaviour
             StartPhase2();
     }
 
+    private void OnBossDied()
+    {
+        UnsubscribeFromBoss();
+        bossCleared = true;
+        bossSpawned = true;
+
+        RemovePhase1CeilingWall();
+        RemovePhase1EntranceWall();
+        ClearBossRoomEnemies();
+
+        if (roomCameraController != null)
+        {
+            roomCameraController.enabled = true;
+            roomCameraController.ResetToPlayerRoom();
+        }
+
+        boss = null;
+        bossWasInstantiated = false;
+    }
+
     private void MoveCameraToPhase1Position()
     {
-        // 1페이즈는 방의 하단을 기준으로 카메라를 고정합니다.
+        // 1?섏씠利덈뒗 諛⑹쓽 ?섎떒??湲곗??쇰줈 移대찓?쇰? 怨좎젙?⑸땲??
         Vector3 target = GetPhase1CameraPosition();
 
         cam.transform.position = Vector3.Lerp(
@@ -268,7 +311,7 @@ public class Stage1BossRoomController : MonoBehaviour
 
     private void SnapCameraToPhase1Position()
     {
-        // 보스를 켜기 전에 카메라를 먼저 보스룸 위치로 고정해서 보스의 카메라 경계 보정이 엉뚱한 위치를 기준으로 돌지 않게 합니다.
+        // 蹂댁뒪瑜?耳쒓린 ?꾩뿉 移대찓?쇰? 癒쇱? 蹂댁뒪猷??꾩튂濡?怨좎젙?댁꽌 蹂댁뒪??移대찓??寃쎄퀎 蹂댁젙???됰슧???꾩튂瑜?湲곗??쇰줈 ?뚯? ?딄쾶 ?⑸땲??
         if (cam == null || bossRoom == null)
             return;
 
@@ -312,6 +355,9 @@ public class Stage1BossRoomController : MonoBehaviour
         if (!enterWhenPlayerInsideRoom || player == null)
             return;
 
+        if (bossCleared)
+            return;
+
         if (playerHealth != null && playerHealth.IsDead)
             return;
 
@@ -321,7 +367,7 @@ public class Stage1BossRoomController : MonoBehaviour
 
     private void MoveCameraUp()
     {
-        // 2페이즈는 방의 상단까지만 카메라가 올라가도록 제한합니다.
+        // 2?섏씠利덈뒗 諛⑹쓽 ?곷떒源뚯?留?移대찓?쇨? ?щ씪媛?꾨줉 ?쒗븳?⑸땲??
         float maxY = bossRoom.transform.position.y + bossRoom.roomSize.y * 0.5f - cam.orthographicSize;
         float nextY = Mathf.Min(cam.transform.position.y + scrollSpeed * Time.deltaTime, maxY);
 
@@ -338,7 +384,7 @@ public class Stage1BossRoomController : MonoBehaviour
         if (!keepBossVisibleInPhase2 || boss == null || cam == null)
             return;
 
-        // 2페이즈에서는 카메라 중심보다 살짝 위쪽을 보스의 기준 높이로 삼아 화면에 잘리지 않게 한다.
+        // 2?섏씠利덉뿉?쒕뒗 移대찓??以묒떖蹂대떎 ?댁쭩 ?꾩そ??蹂댁뒪??湲곗? ?믪씠濡??쇱븘 ?붾㈃???섎━吏 ?딄쾶 ?쒕떎.
         boss.FollowBossRoomCamera(cam, phase2BossCameraYOffset, phase2BossFollowSpeed);
     }
 
@@ -368,7 +414,7 @@ public class Stage1BossRoomController : MonoBehaviour
         if (!createPhase1EntranceWall || phase1EntranceWall != null)
             return;
 
-        // 입구벽은 플레이어가 보스룸 밖으로 되돌아가는 길만 막도록 왼쪽 경계 바로 바깥에 배치합니다.
+        // ?낃뎄踰쎌? ?뚮젅?댁뼱媛 蹂댁뒪猷?諛뽰쑝濡??섎룎?꾧???湲몃쭔 留됰룄濡??쇱そ 寃쎄퀎 諛붾줈 諛붽묑??諛곗튂?⑸땲??
         Vector3 wallPosition = GetPhase1EntranceWallPosition();
         Vector2 wallSize = GetPhase1EntranceWallSize();
 
@@ -461,6 +507,12 @@ public class Stage1BossRoomController : MonoBehaviour
 
     private void HandlePlayerDied(PlayerHealth deadPlayer)
     {
+        if (!resetOnPlayerDeath)
+            return;
+
+        if (bossCleared)
+            return;
+
         if (deadPlayer == null || playerHealth != null && deadPlayer != playerHealth)
             return;
 
@@ -484,11 +536,12 @@ public class Stage1BossRoomController : MonoBehaviour
         if (phase == BossRoomPhase.Waiting && !bossSpawned)
             return;
 
-        // 플레이어가 보스전에서 죽으면 보스룸 상태를 입장 전으로 돌려 다음 도전에 같은 조건으로 시작하게 합니다.
+        // ?뚮젅?댁뼱媛 蹂댁뒪?꾩뿉??二쎌쑝硫?蹂댁뒪猷??곹깭瑜??낆옣 ?꾩쑝濡??뚮젮 ?ㅼ쓬 ?꾩쟾??媛숈? 議곌굔?쇰줈 ?쒖옉?섍쾶 ?⑸땲??
         phase = BossRoomPhase.Waiting;
         phase2Started = false;
         phase2Timer = 0f;
         bossSpawned = false;
+        bossCleared = false;
 
         RemovePhase1CeilingWall();
         RemovePhase1EntranceWall();
@@ -496,11 +549,58 @@ public class Stage1BossRoomController : MonoBehaviour
 
         if (boss != null)
         {
-            boss.ResetForBossRoomRetry();
+            if (bossWasInstantiated)
+            {
+                Destroy(boss.gameObject);
+                boss = null;
+            }
+            else
+            {
+                boss.ResetForBossRoomRetry();
 
-            if (hideSceneBossUntilRoomEntered)
-                boss.gameObject.SetActive(false);
+                if (hideSceneBossUntilRoomEntered)
+                    boss.gameObject.SetActive(false);
+            }
         }
+
+        bossWasInstantiated = false;
+    }
+
+    private void ClearBossRoomEnemies()
+    {
+        foreach (GameObject enemy in enemiesToDestroyOnBossDeath)
+            DestroyIfPresent(enemy);
+
+        if (!destroyEnemiesInsideRoomOnBossDeath || bossRoom == null)
+            return;
+
+        DestroyComponentsInsideRoom<EnemyBase>();
+        DestroyComponentsInsideRoom<GhostEnemy>();
+        DestroyComponentsInsideRoom<ShadowEnemy>();
+        DestroyComponentsInsideRoom<HealDrone>();
+    }
+
+    private void DestroyComponentsInsideRoom<T>() where T : Component
+    {
+        Bounds bounds = bossRoom.GetBounds();
+        T[] components = FindObjectsByType<T>(FindObjectsSortMode.None);
+
+        foreach (T component in components)
+        {
+            if (component != null && bounds.Contains(component.transform.position))
+                DestroyIfPresent(component.gameObject);
+        }
+    }
+
+    private void DestroyIfPresent(GameObject obj)
+    {
+        if (obj == null)
+            return;
+
+        if (boss != null && obj == boss.gameObject)
+            return;
+
+        Destroy(obj);
     }
 
     private void OnDrawGizmosSelected()

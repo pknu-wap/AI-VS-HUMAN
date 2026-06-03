@@ -53,8 +53,9 @@ public class InputController : MonoBehaviour
         if (mainCamera == null)
             return;
 
-        Vector2 mouseWorldPos = mainCamera.ScreenToWorldPoint(
-            Mouse.current.position.ReadValue());
+        Vector3 screenPosition = Mouse.current.position.ReadValue();
+        screenPosition.z = GetScreenToWorldDepth(mainCamera);
+        Vector2 mouseWorldPos = mainCamera.ScreenToWorldPoint(screenPosition);
 
         if (value.isPressed)
         {
@@ -65,5 +66,11 @@ public class InputController : MonoBehaviour
         {
             OnFireEndEvent?.Invoke(mouseWorldPos);
         }
+    }
+
+    private float GetScreenToWorldDepth(Camera targetCamera)
+    {
+        float depth = Mathf.Abs(targetCamera.transform.position.z - transform.position.z);
+        return Mathf.Max(depth, targetCamera.nearClipPlane + 0.01f);
     }
 }

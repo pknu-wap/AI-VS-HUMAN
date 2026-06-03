@@ -1,10 +1,10 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class BossSafeZonePattern : MonoBehaviour
 {
     [Header("References")]
-    public BossDrone boss;
+    public GiantDrone boss;
     public Transform bossTransform;
     public Room bossRoom;
     public Transform player;
@@ -452,7 +452,7 @@ public class BossSafeZonePattern : MonoBehaviour
     private void ResolveReferences()
     {
         if (boss == null)
-            boss = GetComponent<BossDrone>();
+            boss = GetComponent<GiantDrone>();
 
         if (bossTransform == null)
         {
@@ -463,7 +463,7 @@ public class BossSafeZonePattern : MonoBehaviour
         }
 
         if (boss == null)
-            boss = FindFirstObjectByType<BossDrone>();
+            boss = FindFirstObjectByType<GiantDrone>();
 
         if (bossTransform == null && boss != null)
             bossTransform = boss.transform;

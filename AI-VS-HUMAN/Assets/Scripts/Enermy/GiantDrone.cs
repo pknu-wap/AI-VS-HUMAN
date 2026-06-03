@@ -10,7 +10,7 @@ using Action = System.Action;
 // - 베지에 곡선을 이용한 부드러운 U자 돌진
 // - 돌진 중 설정된 딜레이 간격으로 부채꼴 탄막 발사
 // - 고정된 Y축 높이 유지 (벽 회피 및 플레이어 Y추적 제거)
-public class BossDrone : MonoBehaviour, IDamageable
+public partial class GiantDrone : MonoBehaviour, IDamageable
 {
     [Header("체력")]
     public float maxHp = 600f;
@@ -18,6 +18,7 @@ public class BossDrone : MonoBehaviour, IDamageable
     private float currentHp;
 
     public event Action HalfHealthReached;
+    public event Action Died;
     public float CurrentHp => currentHp;
     public float HealthRatio => maxHp <= 0f ? 0f : currentHp / maxHp;
 
@@ -132,7 +133,8 @@ public class BossDrone : MonoBehaviour, IDamageable
         if (playerObj != null) player = playerObj.transform;
 
         ClearExistingHealDrones();
-        CreateHpBarUI();
+        if (bossCanvas == null)
+            CreateHpBarUI();
         UpdateHpBar();
 
         if (bossCanvas != null) bossCanvas.gameObject.SetActive(false);
@@ -164,6 +166,53 @@ public class BossDrone : MonoBehaviour, IDamageable
             spriteRenderer.enabled = true;
             spriteRenderer.color = originalColor;
         }
+
+        if (player == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+                player = playerObj.transform;
+        }
+
+        DestroyClearCanvas();
+
+        if (bossCanvas == null)
+            CreateHpBarUI();
+
+        UpdateHpBar();
+
+        if (bossCanvas != null)
+            bossCanvas.gameObject.SetActive(false);
+    }
+
+    public void PrepareForBossRoomActivation(Camera bossRoomCamera = null)
+    {
+        // 씬에 배치된 보스를 그대로 켤 때는 에디터 위치를 유지한 채 전투 상태만 초기화한다.
+        CacheComponents();
+        ConfigureRigidbody();
+        keepInsideCameraView = false;
+        currentHp = maxHp;
+        halfHealthNotified = false;
+        isDead = false;
+        isActive = false;
+        isDoingUDash = false;
+        isDoingPetal = false;
+        healDroneAliveCount = 0;
+        hoverTime = 0f;
+        swayTime = 0f;
+        swayBaseX = transform.position.x;
+        baseY = transform.position.y;
+        lastSafePosition = transform.position;
+        mainCamera = bossRoomCamera != null ? bossRoomCamera : Camera.main;
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.enabled = true;
+            spriteRenderer.color = originalColor;
+        }
+
+        if (bossCollider != null)
+            bossCollider.enabled = true;
 
         if (player == null)
         {
@@ -216,6 +265,85 @@ public class BossDrone : MonoBehaviour, IDamageable
         DestroyBossCanvas();
         DestroyClearCanvas();
     }
+
+    public void TakeDamage(float damage)
+    {
+        // 데미지를 받은 뒤 체력바를 갱신하고, 절반 체력 이벤트가 필요한지 확인한다.
+        if (isDead) return;
+        currentHp = Mathf.Clamp(currentHp - damage, 0f, maxHp);
+        UpdateHpBar();
+        CheckHalfHealthReached();
+
+        if (currentHp <= 0f)
+        {
+            StartDeath();
+            return;
+        }
+
+        if (hitFlashCoroutine != null) StopCoroutine(hitFlashCoroutine);
+        hitFlashCoroutine = StartCoroutine(HitFlash());
+    }
+
+    IEnumerator HitFlash()
+    {
+        if (spriteRenderer == null) yield break;
+        spriteRenderer.color = Color.red;
+        yield return new WaitForSeconds(0.1f);
+        if (!isDead) spriteRenderer.color = originalColor;
+        hitFlashCoroutine = null;
+    }
+
+    private void StartDeath()
+    {
+        if (isDead)
+            return;
+
+        isDead = true;
+        Died?.Invoke();
+        StopAllCoroutines();
+        StartCoroutine(Die());
+    }
+
+    IEnumerator Die()
+    {
+        if (rb != null) rb.linearVelocity = Vector2.zero;
+        if (bossCollider != null) bossCollider.enabled = false;
+        DestroyBossCanvas();
+        ClearExistingHealDrones();
+        ShowClearMessage();
+
+        float elapsed = 0f;
+        Color startColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+            if (spriteRenderer != null)
+                spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
+            yield return null;
+        }
+        Destroy(gameObject);
+    }
+
+    private void CheckHalfHealthReached()
+    {
+        // 체력 절반 이벤트는 한 번만 발생해야 보스룸 2페이즈가 중복 시작되지 않는다.
+        if (halfHealthNotified)
+            return;
+
+        if (currentHp > maxHp * 0.5f)
+            return;
+
+        halfHealthNotified = true;
+        HalfHealthReached?.Invoke();
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, detectionRange);
+    }
+
 
     public void FollowBossRoomCamera(Camera bossRoomCamera, float cameraYOffset, float followSpeed)
     {
@@ -299,53 +427,6 @@ public class BossDrone : MonoBehaviour, IDamageable
             if (drone != null) Destroy(drone.gameObject);
         }
         healDroneAliveCount = 0;
-    }
-
-    void Update()
-    {
-        // 플레이어가 감지 범위에 들어오기 전까지는 보스 패턴을 시작하지 않는다.
-        if (isDead || player == null) return;
-
-        if (Vector2.Distance(transform.position, player.position) > detectionRange)
-            return;
-
-        if (!isActive)
-        {
-            isActive = true;
-            swayBaseX = transform.position.x;
-            if (bossCanvas != null) bossCanvas.gameObject.SetActive(true);
-            StartCoroutine(PatternLoop());
-        }
-
-        if (spriteRenderer != null)
-            spriteRenderer.flipX = player.position.x < transform.position.x;
-
-        hoverTime += Time.deltaTime;
-        if (isDoingUDash) return;
-
-        swayTime += Time.deltaTime;
-        swayBaseX = Mathf.MoveTowards(swayBaseX, player.position.x, moveSpeed * 0.5f * Time.deltaTime);
-
-        float bob = Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude;
-        float targetX = swayBaseX + Mathf.Sin(swayTime * swaySpeed) * swayAmplitude;
-        float targetY = baseY + bob;
-        float currentMoveSpeed = isDoingPetal ? moveSpeed * petalMoveSpeedMultiplier : moveSpeed;
-
-        float newX = Mathf.MoveTowards(transform.position.x, targetX, currentMoveSpeed * Time.deltaTime);
-        float newY = Mathf.MoveTowards(transform.position.y, targetY, currentMoveSpeed * Time.deltaTime);
-
-        LayerMask groundMask = LayerMask.GetMask("Ground");
-        Vector3 nextPosition = new Vector3(newX, newY, 0f);
-
-        MoveToSafePosition(nextPosition, groundMask);
-    }
-
-    void LateUpdate()
-    {
-        if (isDead || !isActive)
-            return;
-
-        ClampInsideCameraView();
     }
 
     Vector3 GetSafePosition(Vector3 wantedPosition, LayerMask groundMask)
@@ -686,297 +767,6 @@ public class BossDrone : MonoBehaviour, IDamageable
         }
     }
 
-    IEnumerator PatternLoop()
-    {
-        // 공격 패턴 순서를 섞어 반복 실행하고, 회복 드론 루프는 별도 코루틴으로 돌린다.
-        yield return new WaitForSeconds(2f);
-        StartCoroutine(HealDroneLoop());
-
-        int[] patterns = { 0, 1 };
-        while (!isDead)
-        {
-            ShufflePatterns(patterns);
-            foreach (int pattern in patterns)
-            {
-                if (isDead) yield break;
-                if (pattern == 0)
-                {
-                    yield return StartCoroutine(SmoothUDashAndFire());
-                    yield return new WaitForSeconds(fanCooldown);
-                }
-                else
-                {
-                    isDoingPetal = true;
-                    yield return StartCoroutine(FirePetalPattern());
-                    isDoingPetal = false;
-                    yield return new WaitForSeconds(petalLoopDelay);
-                }
-            }
-        }
-    }
-
-    void ShufflePatterns(int[] patterns)
-    {
-        for (int i = patterns.Length - 1; i > 0; i--)
-        {
-            int j = Random.Range(0, i + 1);
-            int temp = patterns[i];
-            patterns[i] = patterns[j];
-            patterns[j] = temp;
-        }
-    }
-
-    // ── 개선된 U자 돌진 + 시간차 부채꼴 발사 ────────────────
-    IEnumerator SmoothUDashAndFire()
-    {
-        if (isDead || player == null) yield break;
-
-        isDoingUDash = true;
-        LayerMask groundMask = LayerMask.GetMask("Ground");
-
-        Vector3 p0 = transform.position;
-        float dirX = player.position.x > transform.position.x ? 1f : -1f;
-
-        // 베지에 곡선 제어점 (U자형)
-        Vector3 p2 = new Vector3(p0.x + dashWidth * dirX, p0.y, 0f);
-        Vector3 p1 = new Vector3((p0.x + p2.x) * 0.5f, p0.y - (dashDropY * 2f), 0f);
-
-        float duration = Mathf.Max(dashWidth / dashSpeed, 1.2f);
-        float elapsed = 0f;
-        
-        int firedCount = 0;
-        float nextFireTime = 0f;
-
-        while (elapsed < duration && !isDead)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
-            float easeT = Mathf.SmoothStep(0f, 1f, t);
-
-            // 2차 베지에 곡선 위치 업데이트
-            Vector3 m1 = Vector3.Lerp(p0, p1, easeT);
-            Vector3 m2 = Vector3.Lerp(p1, p2, easeT);
-            Vector3 targetPosition = Vector3.Lerp(m1, m2, easeT);
-            bool reachedTarget = MoveToSafePosition(targetPosition, groundMask);
-
-            // 벽에 막혔으면 그 자리에서 돌진을 끊어 관통/끼임을 막는다.
-            if (!reachedTarget)
-            {
-                ResolveCurrentWallOverlap(groundMask);
-                break;
-            }
-
-            // 곡선 진행도가 20%를 넘으면 설정한 간격(fanDashFireDelay)마다 발사
-            if (easeT >= 0.2f && firedCount < fanDashVolleyCount)
-            {
-                if (Time.time >= nextFireTime)
-                {
-                    FireFanBullets();
-                    firedCount++;
-                    nextFireTime = Time.time + fanDashFireDelay;
-                }
-            }
-
-            yield return null;
-        }
-
-        if (firedCount == 0 && !isDead) FireFanBullets();
-
-        swayBaseX = transform.position.x;
-        isDoingUDash = false;
-    }
-
-    void FireFanBullets()
-    {
-        if (fanBulletPrefab == null || player == null) return;
-
-        Vector2 aimDir = ((Vector2)player.position - (Vector2)transform.position).normalized;
-        if (aimDir.sqrMagnitude < 0.001f) aimDir = Vector2.down;
-
-        Vector3 firePos = transform.position + (Vector3)(aimDir * fanFireOffset);
-        float baseAngle = Mathf.Atan2(aimDir.y, aimDir.x) * Mathf.Rad2Deg;
-        float startAngle = baseAngle - fanSpreadAngle * 0.5f;
-        float step = fanBulletCount > 1 ? fanSpreadAngle / (fanBulletCount - 1) : 0f;
-
-        for (int i = 0; i < fanBulletCount; i++)
-        {
-            float angle = startAngle + step * i;
-            Vector2 dir = AngleToDir(angle);
-            SpawnBullet(fanBulletPrefab, firePos, dir, fanBulletDamage, fanBulletSpeed, angle);
-        }
-    }
-
-    IEnumerator FirePetalPattern()
-    {
-        if (petalBulletPrefab == null) yield break;
-        float angleStep = 360f / petalArmCount;
-
-        for (int shot = 0; shot < petalBulletsPerArm; shot++)
-        {
-            for (int arm = 0; arm < petalArmCount; arm++)
-            {
-                float angle = petalBaseAngle + angleStep * arm;
-                Vector2 dir = AngleToDir(angle);
-                float curveDir = arm % 2 == 0 ? 1f : -1f;
-
-                GameObject go = Instantiate(petalBulletPrefab, transform.position, Quaternion.identity);
-                PetalBullet pb = go.GetComponent<PetalBullet>() ?? go.AddComponent<PetalBullet>();
-                pb.Init(dir, petalBulletSpeed, petalCurvature * curveDir, 3.5f, petalSpawnOffset);
-            }
-            petalBaseAngle -= petalRotatePerShot;
-            yield return new WaitForSeconds(petalFireInterval);
-        }
-    }
-
-    IEnumerator HealDroneLoop()
-    {
-        while (!isDead && currentHp > maxHp * 0.5f)
-            yield return null;
-
-        yield return new WaitForSeconds(healDroneFirstDelay);
-        while (!isDead)
-        {
-            if (healDronePrefab == null) yield break;
-            if (currentHp < maxHp)
-                yield return StartCoroutine(HealDronePattern());
-            yield return new WaitForSeconds(healDroneRepeatDelay);
-        }
-    }
-
-    IEnumerator HealDronePattern()
-    {
-        // 보스전 2페이즈부터 화면 밖 좌우에서 회복 드론을 날려 보내고, 둘 다 붙거나 파괴될 때까지 기다린다.
-        if (healDronePrefab == null) yield break;
-
-        healDroneAliveCount = 0;
-        float elapsed = 0f;
-        float[] sides = { -1f, 1f };
-        int spawnCount = Mathf.Min(Mathf.Max(0, healDroneCount), sides.Length);
-
-        for (int i = 0; i < spawnCount; i++)
-        {
-            float side = sides[i];
-            Vector3 spawnPos = GetHealDroneSpawnPosition(side);
-            GameObject go = Instantiate(healDronePrefab, spawnPos, Quaternion.identity);
-            HealDrone hd = go.GetComponent<HealDrone>() ?? go.AddComponent<HealDrone>();
-            hd.Init(this, side);
-            healDroneAliveCount++;
-        }
-
-        // 드론을 빠르게 파괴해도 정해진 지속 시간이 끝나야 다음 회복 패턴 쿨타임으로 넘어간다.
-        while (!isDead && (healDroneAliveCount > 0 || elapsed < healDronePatternMinDuration))
-        {
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-    }
-
-    private Vector3 GetHealDroneSpawnPosition(float side)
-    {
-        // 현재 카메라 기준 화면 밖 좌우에서 출발하게 만들어 2페이즈 카메라 이동 후에도 같은 패턴이 유지되게 한다.
-        Camera cam = mainCamera != null ? mainCamera : Camera.main;
-        Vector3 bossCenter = GetBossVisualCenter();
-
-        if (cam == null || !cam.orthographic)
-            return bossCenter + new Vector3(side * (12f + healDroneSpawnOutsidePadding), healDroneOffsetY, 0f);
-
-        float halfHeight = cam.orthographicSize;
-        float halfWidth = halfHeight * cam.aspect;
-        float spawnX = cam.transform.position.x + Mathf.Sign(side) * (halfWidth + healDroneSpawnOutsidePadding);
-        return new Vector3(spawnX, bossCenter.y + healDroneOffsetY, 0f);
-    }
-
-    public Vector3 GetHealDroneAttachPosition(float side)
-    {
-        // 드론이 보스의 좌우 하단에 붙어 보이도록 보스 중심 기준 부착 위치를 제공한다.
-        Vector3 bossCenter = GetBossVisualCenter();
-        return bossCenter + new Vector3(Mathf.Sign(side) * healDroneOffsetX, healDroneOffsetY, 0f);
-    }
-
-    public void HealFromAttachedDrone(float deltaTime)
-    {
-        if (isDead)
-            return;
-
-        currentHp = Mathf.Clamp(currentHp + healAmount * deltaTime, 0f, maxHp);
-        UpdateHpBar();
-    }
-
-    public void OnHealDroneDestroyed()
-    {
-        healDroneAliveCount = Mathf.Max(0, healDroneAliveCount - 1);
-    }
-
-    public void TakeDamage(float damage)
-    {
-        // 데미지를 받은 뒤 체력바를 갱신하고, 절반 체력 이벤트가 필요한지 확인한다.
-        if (isDead) return;
-        currentHp = Mathf.Clamp(currentHp - damage, 0f, maxHp);
-        UpdateHpBar();
-        CheckHalfHealthReached();
-
-        if (currentHp <= 0f)
-        {
-            StartDeath();
-            return;
-        }
-
-        if (hitFlashCoroutine != null) StopCoroutine(hitFlashCoroutine);
-        hitFlashCoroutine = StartCoroutine(HitFlash());
-    }
-
-    IEnumerator HitFlash()
-    {
-        if (spriteRenderer == null) yield break;
-        spriteRenderer.color = Color.red;
-        yield return new WaitForSeconds(0.1f);
-        if (!isDead) spriteRenderer.color = originalColor;
-        hitFlashCoroutine = null;
-    }
-
-    private void StartDeath()
-    {
-        if (isDead)
-            return;
-
-        isDead = true;
-        StopAllCoroutines();
-        StartCoroutine(Die());
-    }
-
-    IEnumerator Die()
-    {
-        if (rb != null) rb.linearVelocity = Vector2.zero;
-        if (bossCollider != null) bossCollider.enabled = false;
-        DestroyBossCanvas();
-        ClearExistingHealDrones();
-        ShowClearMessage();
-
-        float elapsed = 0f;
-        Color startColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
-        while (elapsed < fadeDuration)
-        {
-            elapsed += Time.deltaTime;
-            float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
-            if (spriteRenderer != null)
-                spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
-            yield return null;
-        }
-        Destroy(gameObject);
-    }
-
-    Vector2 AngleToDir(float deg)
-    {
-        float rad = deg * Mathf.Deg2Rad;
-        return new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
-    }
-
-    void SpawnBullet(GameObject prefab, Vector3 spawnPos, Vector2 dir, float damage, float speed, float angle)
-    {
-        GameObject obj = Instantiate(prefab, spawnPos, Quaternion.Euler(0f, 0f, angle));
-        Bullet bullet = obj.GetComponent<Bullet>();
-        if (bullet != null) bullet.Init(dir, damage, speed);
-    }
 
     void CreateHpBarUI()
     {
@@ -1098,24 +888,5 @@ public class BossDrone : MonoBehaviour, IDamageable
 
         Destroy(clearCanvas.gameObject);
         clearCanvas = null;
-    }
-
-    private void CheckHalfHealthReached()
-    {
-        // 체력 절반 이벤트는 한 번만 발생해야 보스룸 2페이즈가 중복 시작되지 않는다.
-        if (halfHealthNotified)
-            return;
-
-        if (currentHp > maxHp * 0.5f)
-            return;
-
-        halfHealthNotified = true;
-        HalfHealthReached?.Invoke();
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
     }
 }
