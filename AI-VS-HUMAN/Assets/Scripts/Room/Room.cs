@@ -1,13 +1,16 @@
-// 방의 크기와 경계를 정의하는 스크립트
-// RoomCameraController와 보스룸 컨트롤러는 이 Bounds를 기준으로 카메라 위치와 입장 여부를 판단한다.
 using UnityEngine;
 
 [ExecuteAlways]
 public class Room : MonoBehaviour
 {
-    [Header("방 크기 배수")]
-    [Min(1)] public int nX = 1; // 가로 (16 × nX)
-    [Min(1)] public int nY = 1; // 세로 (9 × nY)
+    [Header("Room Size")]
+    [Min(1)] public int nX = 1;
+    [Min(1)] public int nY = 1;
+
+    [Header("Respawn")]
+    public bool useRespawnPosition;
+    public Vector3 respawnPosition;
+    public Transform respawnPoint;
 
     public Vector2 roomSize => new Vector2(16f * nX, 9f * nY);
 
@@ -16,11 +19,33 @@ public class Room : MonoBehaviour
         return new Bounds(transform.position, roomSize);
     }
 
+    public Vector3 GetRespawnPosition(Vector3 fallbackPosition)
+    {
+        if (useRespawnPosition)
+            return respawnPosition;
+
+        return respawnPoint != null ? respawnPoint.position : fallbackPosition;
+    }
+
+    public bool HasRespawnPosition()
+    {
+        return useRespawnPosition || respawnPoint != null;
+    }
+
     private void OnDrawGizmos()
     {
         Gizmos.color = new Color(0f, 1f, 1f, 0.2f);
         Gizmos.DrawCube(transform.position, roomSize);
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireCube(transform.position, roomSize);
+
+        if (HasRespawnPosition())
+        {
+            Vector3 markerPosition = GetRespawnPosition(transform.position);
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(markerPosition, 0.35f);
+            Gizmos.DrawLine(markerPosition + Vector3.left * 0.5f, markerPosition + Vector3.right * 0.5f);
+            Gizmos.DrawLine(markerPosition + Vector3.down * 0.5f, markerPosition + Vector3.up * 0.5f);
+        }
     }
 }

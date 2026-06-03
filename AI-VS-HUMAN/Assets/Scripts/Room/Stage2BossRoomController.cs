@@ -206,6 +206,20 @@ public class Stage2BossRoomController : MonoBehaviour
         ResetBossServersForRetry();
     }
 
+    public void ResetForDebugTeleport()
+    {
+        UnsubscribeFromBoss();
+
+        if (spawnedBoss != null)
+            Destroy(spawnedBoss.gameObject);
+
+        spawnedBoss = null;
+        bossSpawned = false;
+        bossCleared = false;
+        RemoveBossLockWalls();
+        ResetBossServersForRetry();
+    }
+
     private void HandleBossDied()
     {
         UnsubscribeFromBoss();

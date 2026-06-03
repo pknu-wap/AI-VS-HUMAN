@@ -17,11 +17,15 @@ public class RoomCameraController : MonoBehaviour
     [Header("카메라 오프셋")]
     public Vector3 cameraOffset = new Vector3(0f, 0f, -10f);
 
+    [Header("Room Change")]
+    public bool restorePlayerHealthOnRoomChange = true;
+
     private Room currentRoom;
     private Room[] allRooms;
     private bool isTransitioning = false;
     private Camera cam;
     private CameraSizeController camSizeController;
+    private PlayerHealth playerHealth;
 
     private void Awake()
     {
@@ -34,6 +38,8 @@ public class RoomCameraController : MonoBehaviour
             if (playerObj != null)
                 player = playerObj.transform;
         }
+
+        ResolvePlayerHealth();
 
         if (cam == null || camSizeController == null || player == null)
         {
@@ -131,10 +137,28 @@ public class RoomCameraController : MonoBehaviour
 
         transform.position = endPos;
         currentRoom = targetRoom;
+        RestorePlayerHealthIfNeeded();
         isTransitioning = false; // 전환 끝나면 LateUpdate가 자연스럽게 이어받음
     }
 
     // 카메라 중심이 방 경계 밖으로 나가지 않게 플레이어 위치를 제한한다.
+    private void ResolvePlayerHealth()
+    {
+        if (playerHealth == null && player != null)
+            playerHealth = player.GetComponent<PlayerHealth>();
+    }
+
+    private void RestorePlayerHealthIfNeeded()
+    {
+        if (!restorePlayerHealthOnRoomChange)
+            return;
+
+        ResolvePlayerHealth();
+
+        if (playerHealth != null)
+            playerHealth.Heal(playerHealth.MaxHp);
+    }
+
     private Vector3 GetClampedPosition(Room room)
     {
         float halfW = Mathf.Max(0f, room.roomSize.x / 2f - cam.orthographicSize * cam.aspect);

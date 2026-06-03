@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 2477014298502648274}
   - component: {fileID: 8782672133758667673}
   - component: {fileID: 4995014266369625275}
-  m_Layer: 3
+  m_Layer: 8
   m_Name: DronEnemy
   m_TagString: Enemy
   m_Icon: {fileID: 0}
@@ -201,7 +201,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7270819553076695478}
   - component: {fileID: 4437847777473632226}
-  m_Layer: 3
+  m_Layer: 8
   m_Name: FirePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}

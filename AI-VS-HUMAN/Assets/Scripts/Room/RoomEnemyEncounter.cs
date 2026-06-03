@@ -13,6 +13,7 @@ public class RoomEnemyEncounter : MonoBehaviour
     public List<GameObject> enemies = new List<GameObject>();
     public bool deactivateEnemiesOnStart = true;
     public bool triggerOnce = true;
+    public bool resetOnPlayerDeath = true;
 
     [Header("Lock Walls")]
     public bool createLockWalls = true;
@@ -25,21 +26,40 @@ public class RoomEnemyEncounter : MonoBehaviour
     public Color enemyPositionColor = new Color(1f, 0.25f, 0.15f, 0.85f);
     public float enemyPositionRadius = 0.35f;
 
+    private readonly List<GameObject> enemyTemplates = new List<GameObject>();
+    private readonly List<GameObject> activeEnemies = new List<GameObject>();
     private readonly List<GameObject> lockWalls = new List<GameObject>();
+    private PlayerHealth playerHealth;
     private bool encounterStarted;
     private bool encounterCleared;
 
     private void Awake()
     {
         ResolveReferences();
+        CacheEnemyTemplates();
 
         if (deactivateEnemiesOnStart && !encounterStarted)
-            SetEnemiesActive(false);
+            SetEnemyTemplatesActive(false);
+    }
+
+    private void OnEnable()
+    {
+        ResolveReferences();
+        PlayerHealth.PlayerDied += HandlePlayerDied;
+    }
+
+    private void OnDisable()
+    {
+        PlayerHealth.PlayerDied -= HandlePlayerDied;
+        RemoveLockWalls();
     }
 
     private void Update()
     {
         ResolveReferences();
+
+        if (playerHealth != null && playerHealth.IsDead)
+            return;
 
         if (encounterCleared && triggerOnce)
             return;
@@ -52,7 +72,7 @@ public class RoomEnemyEncounter : MonoBehaviour
             return;
         }
 
-        if (!HasRemainingEnemies())
+        if (!HasRemainingActiveEnemies())
             ClearEncounter();
     }
 
@@ -72,6 +92,21 @@ public class RoomEnemyEncounter : MonoBehaviour
             if (playerObj != null)
                 player = playerObj.transform;
         }
+
+        if (playerHealth == null && player != null)
+            playerHealth = player.GetComponent<PlayerHealth>();
+    }
+
+    private void CacheEnemyTemplates()
+    {
+        if (enemyTemplates.Count > 0)
+            return;
+
+        foreach (GameObject enemy in enemies)
+        {
+            if (enemy != null && !enemyTemplates.Contains(enemy))
+                enemyTemplates.Add(enemy);
+        }
     }
 
     private bool IsPlayerInsideRoom()
@@ -84,9 +119,9 @@ public class RoomEnemyEncounter : MonoBehaviour
         encounterStarted = true;
         encounterCleared = false;
 
-        SetEnemiesActive(true);
+        SpawnActiveEnemies();
 
-        if (createLockWalls && HasRemainingEnemies())
+        if (createLockWalls && HasRemainingActiveEnemies())
             CreateLockWalls();
     }
 
@@ -94,27 +129,99 @@ public class RoomEnemyEncounter : MonoBehaviour
     {
         encounterCleared = true;
         encounterStarted = false;
+        activeEnemies.Clear();
         RemoveLockWalls();
     }
 
-    private void SetEnemiesActive(bool active)
+    private void SpawnActiveEnemies()
     {
-        foreach (GameObject enemy in enemies)
+        DestroyActiveEnemies();
+        CacheEnemyTemplates();
+
+        foreach (GameObject template in enemyTemplates)
+        {
+            if (template == null)
+                continue;
+
+            template.SetActive(false);
+
+            GameObject enemy = Instantiate(
+                template,
+                template.transform.position,
+                template.transform.rotation,
+                template.transform.parent);
+
+            enemy.name = template.name;
+            enemy.SetActive(true);
+            activeEnemies.Add(enemy);
+        }
+    }
+
+    private void SetEnemyTemplatesActive(bool active)
+    {
+        CacheEnemyTemplates();
+
+        foreach (GameObject enemy in enemyTemplates)
         {
             if (enemy != null)
                 enemy.SetActive(active);
         }
     }
 
-    private bool HasRemainingEnemies()
+    private bool HasRemainingActiveEnemies()
     {
-        foreach (GameObject enemy in enemies)
+        for (int i = activeEnemies.Count - 1; i >= 0; i--)
         {
-            if (enemy != null)
-                return true;
+            if (activeEnemies[i] == null)
+                activeEnemies.RemoveAt(i);
         }
 
-        return false;
+        return activeEnemies.Count > 0;
+    }
+
+    private void HandlePlayerDied(PlayerHealth deadPlayer)
+    {
+        if (!resetOnPlayerDeath || encounterCleared)
+            return;
+
+        if (deadPlayer == null || playerHealth != null && deadPlayer != playerHealth)
+            return;
+
+        if (!encounterStarted && activeEnemies.Count == 0)
+            return;
+
+        ResetEncounterAfterPlayerDeath();
+    }
+
+    private void ResetEncounterAfterPlayerDeath()
+    {
+        encounterStarted = false;
+        encounterCleared = false;
+
+        DestroyActiveEnemies();
+        SetEnemyTemplatesActive(false);
+        RemoveLockWalls();
+    }
+
+    public void ResetForDebugTeleport()
+    {
+        encounterStarted = false;
+        encounterCleared = false;
+
+        DestroyActiveEnemies();
+        SetEnemyTemplatesActive(false);
+        RemoveLockWalls();
+    }
+
+    private void DestroyActiveEnemies()
+    {
+        foreach (GameObject enemy in activeEnemies)
+        {
+            if (enemy != null)
+                Destroy(enemy);
+        }
+
+        activeEnemies.Clear();
     }
 
     private void CreateLockWalls()
@@ -173,11 +280,6 @@ public class RoomEnemyEncounter : MonoBehaviour
         }
 
         lockWalls.Clear();
-    }
-
-    private void OnDisable()
-    {
-        RemoveLockWalls();
     }
 
     private void OnDrawGizmos()

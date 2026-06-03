@@ -80,6 +80,9 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
     public float hpBarPosY = -425f;
     public float hpBarHeight = 26f;
 
+    [Header("Death")]
+    public bool deactivateOnDeathInsteadOfDestroy;
+
     [Header("힐링 드론")]
     public GameObject healDronePrefab;
     public int healDroneCount = 2;
@@ -320,6 +323,13 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
                 spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
             yield return null;
         }
+
+        if (deactivateOnDeathInsteadOfDestroy)
+        {
+            gameObject.SetActive(false);
+            yield break;
+        }
+
         Destroy(gameObject);
     }
 

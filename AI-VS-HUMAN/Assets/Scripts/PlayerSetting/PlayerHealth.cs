@@ -43,6 +43,8 @@ public class PlayerHealth : MonoBehaviour
     private Canvas healthCanvas;
     private Text healthText;
     private bool originalRigidbodySimulated = true;
+    private Vector3 pendingRespawnPosition;
+    private bool hasPendingRespawnPosition;
 
     public int CurrentHp => currentHp;
     public int MaxHp => maxHp;
@@ -124,6 +126,7 @@ public class PlayerHealth : MonoBehaviour
     {
         isDead = true;
         isInvincible = false;
+        CaptureRoomRespawnPosition();
 
         if (invincibleCoroutine != null)
         {
@@ -148,9 +151,10 @@ public class PlayerHealth : MonoBehaviour
 
     private void Respawn()
     {
-        Vector3 spawnPosition = respawnPoint != null ? respawnPoint.position : initialSpawnPosition;
+        Vector3 spawnPosition = GetRespawnPosition();
         transform.position = spawnPosition;
         Physics2D.SyncTransforms();
+        hasPendingRespawnPosition = false;
 
         currentHp = maxHp;
         isDead = false;
@@ -164,6 +168,35 @@ public class PlayerHealth : MonoBehaviour
         PlayerRespawned?.Invoke(this);
         StartInvincibility();
         respawnCoroutine = null;
+    }
+
+    private void CaptureRoomRespawnPosition()
+    {
+        hasPendingRespawnPosition = false;
+
+        Room[] rooms = FindObjectsByType<Room>(FindObjectsSortMode.None);
+        foreach (Room room in rooms)
+        {
+            if (room == null || !room.GetBounds().Contains(transform.position) || !room.HasRespawnPosition())
+                continue;
+
+            pendingRespawnPosition = room.GetRespawnPosition(GetDefaultRespawnPosition());
+            hasPendingRespawnPosition = true;
+            return;
+        }
+    }
+
+    private Vector3 GetRespawnPosition()
+    {
+        if (hasPendingRespawnPosition)
+            return pendingRespawnPosition;
+
+        return GetDefaultRespawnPosition();
+    }
+
+    private Vector3 GetDefaultRespawnPosition()
+    {
+        return respawnPoint != null ? respawnPoint.position : initialSpawnPosition;
     }
 
     private void StartInvincibility()

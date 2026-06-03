@@ -228,6 +228,7 @@ public class Stage1BossRoomController : MonoBehaviour
         }
 
         RestoreBossStartPosition();
+        boss.deactivateOnDeathInsteadOfDestroy = true;
         boss.gameObject.SetActive(true);
         boss.PrepareForBossRoomActivation(cam);
         bossSpawned = true;
@@ -285,8 +286,8 @@ public class Stage1BossRoomController : MonoBehaviour
             roomCameraController.enabled = true;
             roomCameraController.ResetToPlayerRoom();
         }
-
-        boss = null;
+        if (boss == null || !boss.deactivateOnDeathInsteadOfDestroy)
+            boss = null;
     }
 
     private void MoveCameraToPhase1Position()
@@ -487,6 +488,28 @@ public class Stage1BossRoomController : MonoBehaviour
 
         RemoveBossLockWalls();
         UnsubscribeFromBoss();
+
+        if (boss != null)
+        {
+            RestoreBossStartPosition();
+            boss.ResetForBossRoomRetry();
+
+            if (hideSceneBossUntilRoomEntered)
+                boss.gameObject.SetActive(false);
+        }
+    }
+
+    public void ResetForDebugTeleport()
+    {
+        phase = BossRoomPhase.Waiting;
+        phase2Started = false;
+        phase2Timer = 0f;
+        bossSpawned = false;
+        bossCleared = false;
+
+        RemoveBossLockWalls();
+        UnsubscribeFromBoss();
+        ResolveReferences();
 
         if (boss != null)
         {
