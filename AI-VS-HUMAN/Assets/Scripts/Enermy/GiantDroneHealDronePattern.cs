@@ -4,16 +4,17 @@ using UnityEngine;
 [RequireComponent(typeof(GiantDrone))]
 public class GiantDroneHealDronePattern : MonoBehaviour
 {
-    [Header("힐링 드론")]
+    private const float FirstDelay = 3f;
+    private const float AttachOffsetX = 3f;
+    private const float AttachOffsetY = -1f;
+    private const float SpawnOutsidePadding = 2f;
+    private const float MinDuration = 5f;
+
+    [Header("회복 드론")]
     public GameObject healDronePrefab;
     public int healDroneCount = 2;
-    public float firstDelay = 3f;
     public float repeatDelay = 20f;
     public float healAmount = 30f;
-    public float attachOffsetX = 3f;
-    public float attachOffsetY = -1f;
-    public float spawnOutsidePadding = 2f;
-    public float minDuration = 5f;
 
     private GiantDrone boss;
     private Coroutine patternCoroutine;
@@ -39,7 +40,7 @@ public class GiantDroneHealDronePattern : MonoBehaviour
 
     private IEnumerator Loop()
     {
-        yield return new WaitForSeconds(firstDelay);
+        yield return new WaitForSeconds(FirstDelay);
 
         while (!boss.isDead)
         {
@@ -75,7 +76,7 @@ public class GiantDroneHealDronePattern : MonoBehaviour
             boss.healDroneAliveCount++;
         }
 
-        while (!boss.isDead && (boss.healDroneAliveCount > 0 || elapsed < minDuration))
+        while (!boss.isDead && (boss.healDroneAliveCount > 0 || elapsed < MinDuration))
         {
             elapsed += Time.deltaTime;
             yield return null;
@@ -88,12 +89,12 @@ public class GiantDroneHealDronePattern : MonoBehaviour
         Vector3 bossCenter = boss.GetBossVisualCenter();
 
         if (cam == null || !cam.orthographic)
-            return bossCenter + new Vector3(side * (12f + spawnOutsidePadding), attachOffsetY, 0f);
+            return bossCenter + new Vector3(side * (12f + SpawnOutsidePadding), AttachOffsetY, 0f);
 
         float halfHeight = cam.orthographicSize;
         float halfWidth = halfHeight * cam.aspect;
-        float spawnX = cam.transform.position.x + Mathf.Sign(side) * (halfWidth + spawnOutsidePadding);
-        return new Vector3(spawnX, bossCenter.y + attachOffsetY, 0f);
+        float spawnX = cam.transform.position.x + Mathf.Sign(side) * (halfWidth + SpawnOutsidePadding);
+        return new Vector3(spawnX, bossCenter.y + AttachOffsetY, 0f);
     }
 
     public Vector3 GetHealDroneAttachPosition(float side)
@@ -102,7 +103,7 @@ public class GiantDroneHealDronePattern : MonoBehaviour
             boss = GetComponent<GiantDrone>();
 
         Vector3 bossCenter = boss.GetBossVisualCenter();
-        return bossCenter + new Vector3(Mathf.Sign(side) * attachOffsetX, attachOffsetY, 0f);
+        return bossCenter + new Vector3(Mathf.Sign(side) * AttachOffsetX, AttachOffsetY, 0f);
     }
 
     public void HealFromAttachedDrone(float deltaTime)

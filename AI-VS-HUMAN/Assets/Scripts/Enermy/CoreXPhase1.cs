@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class CoreXPhase1 : MonoBehaviour
 {
-    [Header("Wake Up")]
+    [Header("기동")]
     public float wakeUpDuration = 1.5f;
     public float flashInterval = 0.15f;
 

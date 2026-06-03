@@ -17,7 +17,7 @@ public class RoomCameraController : MonoBehaviour
     [Header("카메라 오프셋")]
     public Vector3 cameraOffset = new Vector3(0f, 0f, -10f);
 
-    [Header("Room Change")]
+    [Header("방 이동")]
     public bool restorePlayerHealthOnRoomChange = true;
 
     private Room currentRoom;

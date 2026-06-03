@@ -7,10 +7,16 @@ using UnityEngine.UI;
 
 public class PlayerHealth : MonoBehaviour
 {
+    private const bool CreateHealthUi = true;
+    private const int HealthFontSize = 32;
+    private const string FullHeart = "■";
+    private const string EmptyHeart = "□";
+    private const float BlinkInterval = 0.1f;
+
     public static event Action<PlayerHealth> PlayerDied;
     public static event Action<PlayerHealth> PlayerRespawned;
 
-    [Header("HP 설정")]
+    [Header("체력 설정")]
     public int maxHp = 5;
 
     [Header("리스폰")]
@@ -19,14 +25,9 @@ public class PlayerHealth : MonoBehaviour
 
     [Header("무적 프레임")]
     public float invincibleDuration = 1.0f;
-    public float blinkInterval = 0.1f;
 
     [Header("체력 UI")]
-    public bool createHealthUI = true;
     public Vector2 healthUiPosition = new Vector2(40f, -25f);
-    public int healthFontSize = 32;
-    public string fullHeart = "■";
-    public string emptyHeart = "□";
 
     private int currentHp;
     private bool isInvincible;
@@ -72,7 +73,7 @@ public class PlayerHealth : MonoBehaviour
 
     private void Start()
     {
-        if (createHealthUI)
+        if (CreateHealthUi)
             CreateHealthUI();
 
         UpdateHealthUI();
@@ -215,7 +216,7 @@ public class PlayerHealth : MonoBehaviour
         // 무적 시간 동안 스프라이트를 깜박여 플레이어가 피격 불가 상태임을 보여줍니다.
         isInvincible = true;
         float elapsed = 0f;
-        float interval = Mathf.Max(0.02f, blinkInterval);
+        float interval = Mathf.Max(0.02f, BlinkInterval);
 
         while (elapsed < invincibleDuration)
         {
@@ -315,7 +316,7 @@ public class PlayerHealth : MonoBehaviour
         healthText = textObj.AddComponent<Text>();
         healthText.alignment = TextAnchor.MiddleLeft;
         healthText.color = new Color(1f, 0.2f, 0.25f, 1f);
-        healthText.fontSize = healthFontSize;
+        healthText.fontSize = HealthFontSize;
         healthText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
     }
 
@@ -332,7 +333,7 @@ public class PlayerHealth : MonoBehaviour
         System.Text.StringBuilder builder = new System.Text.StringBuilder(safeMaxHp);
 
         for (int i = 0; i < safeMaxHp; i++)
-            builder.Append(i < safeCurrentHp ? fullHeart : emptyHeart);
+            builder.Append(i < safeCurrentHp ? FullHeart : EmptyHeart);
 
         return builder.ToString();
     }

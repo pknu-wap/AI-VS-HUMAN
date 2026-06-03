@@ -5,26 +5,25 @@ using UnityEngine;
 [RequireComponent(typeof(Room))]
 public class RoomEnemyEncounter : MonoBehaviour
 {
-    [Header("References")]
+    private const float WallThickness = 1f;
+    private const float WallPadding = 0f;
+    private const string WallLayerName = "Ground";
+    private static readonly bool DrawEnemyPositionGizmos = true;
+    private const float EnemyPositionRadius = 0.35f;
+    private static readonly Color EnemyPositionColor = new Color(1f, 0.25f, 0.15f, 0.85f);
+
+    [Header("참조")]
     public Transform player;
     public Room room;
 
-    [Header("Enemies")]
+    [Header("적")]
     public List<GameObject> enemies = new List<GameObject>();
     public bool deactivateEnemiesOnStart = true;
     public bool triggerOnce = true;
     public bool resetOnPlayerDeath = true;
 
-    [Header("Lock Walls")]
+    [Header("잠금 벽")]
     public bool createLockWalls = true;
-    public float wallThickness = 1f;
-    public float wallPadding = 0f;
-    public string wallLayerName = "Ground";
-
-    [Header("Editor Gizmos")]
-    public bool drawEnemyPositionGizmos = true;
-    public Color enemyPositionColor = new Color(1f, 0.25f, 0.15f, 0.85f);
-    public float enemyPositionRadius = 0.35f;
 
     private readonly List<GameObject> enemyTemplates = new List<GameObject>();
     private readonly List<GameObject> activeEnemies = new List<GameObject>();
@@ -232,8 +231,8 @@ public class RoomEnemyEncounter : MonoBehaviour
             return;
 
         Bounds bounds = room.GetBounds();
-        float thickness = Mathf.Max(0.05f, wallThickness);
-        float padding = Mathf.Max(0f, wallPadding);
+        float thickness = Mathf.Max(0.05f, WallThickness);
+        float padding = Mathf.Max(0f, WallPadding);
         float width = bounds.size.x + padding * 2f + thickness * 2f;
         float height = bounds.size.y + padding * 2f + thickness * 2f;
 
@@ -260,7 +259,7 @@ public class RoomEnemyEncounter : MonoBehaviour
         wall.transform.SetParent(transform, true);
         wall.transform.position = position;
 
-        int layer = LayerMask.NameToLayer(wallLayerName);
+        int layer = LayerMask.NameToLayer(WallLayerName);
         if (layer >= 0)
             wall.layer = layer;
 
@@ -284,10 +283,10 @@ public class RoomEnemyEncounter : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        if (!drawEnemyPositionGizmos)
+        if (!DrawEnemyPositionGizmos)
             return;
 
-        Gizmos.color = enemyPositionColor;
+        Gizmos.color = EnemyPositionColor;
 
         foreach (GameObject enemy in enemies)
         {
@@ -295,9 +294,9 @@ public class RoomEnemyEncounter : MonoBehaviour
                 continue;
 
             Vector3 position = enemy.transform.position;
-            Gizmos.DrawWireSphere(position, enemyPositionRadius);
-            Gizmos.DrawLine(position + Vector3.left * enemyPositionRadius, position + Vector3.right * enemyPositionRadius);
-            Gizmos.DrawLine(position + Vector3.down * enemyPositionRadius, position + Vector3.up * enemyPositionRadius);
+            Gizmos.DrawWireSphere(position, EnemyPositionRadius);
+            Gizmos.DrawLine(position + Vector3.left * EnemyPositionRadius, position + Vector3.right * EnemyPositionRadius);
+            Gizmos.DrawLine(position + Vector3.down * EnemyPositionRadius, position + Vector3.up * EnemyPositionRadius);
         }
     }
 }

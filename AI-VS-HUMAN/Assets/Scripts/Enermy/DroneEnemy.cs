@@ -5,6 +5,9 @@ using System.Collections;
 
 public class DroneEnemy : EnemyBase
 {
+    private const float HoverAmplitude = 0.4f;
+    private const float HoverFrequency = 1.5f;
+
     [Header("드론 - 탄막 (곡선 부채꼴)")]
     public GameObject droneBulletPrefab;    // 드론 전용 탄막 프리팹
     public Transform firePoint;
@@ -20,17 +23,15 @@ public class DroneEnemy : EnemyBase
     [Space]
     [Header("곡선 설정")]
     public float curveStrength = 0.3f;   // 0=직선, 0.3=살짝 휨 (Inspector에서 조절)
-    public bool curveLeft = true;           // true: 왼쪽으로 휨, 교대 발동 가능
 
     [Header("드론 - 호버링")]
     public float hoverHeight = 3f;          // 플레이어 위 호버링 높이
     public float hoverSpeed = 1.5f;         // 이동 속도
-    public float hoverAmplitude = 0.4f;     // 상하 부유 크기
-    public float hoverFrequency = 1.5f;     // 부유 속도
 
     private float attackTimer = 0f;
     private float hoverTime = 0f;
     private Vector2 hoverTargetPos;
+    private bool curveLeft = true;
 
     protected override void Start()
     {
@@ -77,7 +78,7 @@ public class DroneEnemy : EnemyBase
         hoverTargetPos = new Vector2(targetX, targetY);
 
         // 상하 부유 오프셋
-        float bobOffset = Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude;
+        float bobOffset = Mathf.Sin(hoverTime * HoverFrequency) * HoverAmplitude;
         Vector2 finalTarget = hoverTargetPos + Vector2.up * bobOffset;
 
         // 부드럽게 이동
@@ -91,7 +92,7 @@ public class DroneEnemy : EnemyBase
     // 감지 범위 밖일 때는 제자리에서 가볍게 떠다닌다.
     void IdleHover()
     {
-        float bobOffset = Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude;
+        float bobOffset = Mathf.Sin(hoverTime * HoverFrequency) * HoverAmplitude;
         transform.position = new Vector3(
             transform.position.x,
             transform.position.y + bobOffset * Time.deltaTime,

@@ -11,18 +11,19 @@ using UnityEngine;
 [RequireComponent(typeof(CoreXElectricTrapPattern))]
 public class CoreXBoss : MonoBehaviour, IDamageable
 {
-    [Header("Health")]
+    private const float FadeDuration = 2f;
+
+    [Header("체력")]
     public float maxHp = 500f;
-    public float fadeDuration = 2f;
     public bool deactivateOnDeathInsteadOfDestroy;
 
-    [Header("Phases")]
+    [Header("페이즈")]
     [SerializeField] private CoreXIntroPhase introPhase;
     [SerializeField] private CoreXPhase1 phase1;
     [SerializeField] private CoreXPhaseTransition phaseTransition;
     [SerializeField] private CoreXPhase2 phase2;
 
-    [Header("Patterns")]
+    [Header("패턴")]
     [SerializeField] private CoreXDashPattern dashPattern;
     [SerializeField] private CoreXSummonPattern summonPattern;
     [SerializeField] private CoreXElectricTrapPattern electricTrapPattern;
@@ -364,11 +365,11 @@ public class CoreXBoss : MonoBehaviour, IDamageable
         if (hpBar != null)
             hpBar.DestroyBar();
 
-        for (float t = 0f; t < fadeDuration; t += Time.deltaTime)
+        for (float t = 0f; t < FadeDuration; t += Time.deltaTime)
         {
             if (spriteRenderer != null)
             {
-                float alpha = Mathf.Lerp(1f, 0f, t / fadeDuration);
+                float alpha = Mathf.Lerp(1f, 0f, t / FadeDuration);
                 spriteRenderer.color = new Color(originalColor.r, originalColor.g, originalColor.b, alpha);
             }
 

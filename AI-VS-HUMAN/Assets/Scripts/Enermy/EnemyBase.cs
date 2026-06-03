@@ -16,9 +16,10 @@ using System.Collections;
 // SoldierEnemy, ShieldEnemy 같은 적들은 이 클래스를 상속해서 사용한다.
 public abstract class EnemyBase : MonoBehaviour, IDamageable
 {
+    private const float FadeDuration = 1.5f;
+
     [Header("기본 스탯")]
     public float maxHp = 30f;
-    public float fadeDuration = 1.5f;
 
     [Header("감지 범위")]
     public float detectionRange = 8f;
@@ -210,11 +211,11 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
         float elapsed = 0f;
 
-        while (elapsed < fadeDuration)
+        while (elapsed < FadeDuration)
         {
             elapsed += Time.deltaTime;
 
-            float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+            float alpha = Mathf.Lerp(1f, 0f, elapsed / FadeDuration);
             spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
 
             yield return null;

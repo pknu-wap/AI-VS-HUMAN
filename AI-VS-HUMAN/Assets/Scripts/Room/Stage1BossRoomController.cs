@@ -6,6 +6,10 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class Stage1BossRoomController : MonoBehaviour
 {
+    private const float LockWallThickness = 1f;
+    private const float LockWallPadding = 0f;
+    private const string LockWallLayerName = "Ground";
+
     private enum BossRoomPhase
     {
         Waiting,
@@ -13,40 +17,37 @@ public class Stage1BossRoomController : MonoBehaviour
         Phase2
     }
 
-    [Header("References")]
+    [Header("참조")]
     public Transform player;
     public RoomCameraController roomCameraController;
     public Room bossRoom;
     public GiantDrone boss;
     private PlayerHealth playerHealth;
 
-    [Header("Boss Activation")]
+    [Header("보스 활성화")]
     public bool hideSceneBossUntilRoomEntered = true;
     public bool spawnOnlyOnce = true;
     public bool resetOnPlayerDeath = true;
 
-    [Header("Boss Room Lock")]
+    [Header("보스룸 잠금")]
     public bool createBossLockWalls = true;
-    public float lockWallThickness = 1f;
-    public float lockWallPadding = 0f;
-    public string lockWallLayerName = "Ground";
 
 
-    [Header("Camera")]
+    [Header("카메라")]
     public float scrollSpeed = 2f;
     public float scrollDelay = 1f;
     public float phase1FollowSpeed = 3f;
 
-    [Header("Phase 2 Boss Follow")]
+    [Header("2페이즈 보스 추적")]
     public bool keepBossVisibleInPhase2 = true;
     public float phase2BossCameraYOffset = 6f;
     public float phase2BossFollowSpeed = 9f;
 
-    [Header("Phase")]
+    [Header("페이즈")]
     public bool enterWhenPlayerInsideRoom = true;
     public bool startPhase2WhenBossHalfHealth = true;
 
-    [Header("Boss Clear Cleanup")]
+    [Header("보스 클리어 정리")]
     public bool destroyEnemiesInsideRoomOnBossDeath = true;
     public List<GameObject> enemiesToDestroyOnBossDeath = new List<GameObject>();
 
@@ -386,8 +387,8 @@ public class Stage1BossRoomController : MonoBehaviour
             return;
 
         Bounds bounds = bossRoom.GetBounds();
-        float thickness = Mathf.Max(0.05f, lockWallThickness);
-        float padding = Mathf.Max(0f, lockWallPadding);
+        float thickness = Mathf.Max(0.05f, LockWallThickness);
+        float padding = Mathf.Max(0f, LockWallPadding);
         float width = bounds.size.x + padding * 2f + thickness * 2f;
         float height = bounds.size.y + padding * 2f + thickness * 2f;
 
@@ -414,7 +415,7 @@ public class Stage1BossRoomController : MonoBehaviour
         wall.transform.position = wallPosition;
         wall.transform.SetParent(transform, true);
 
-        int layer = LayerMask.NameToLayer(lockWallLayerName);
+        int layer = LayerMask.NameToLayer(LockWallLayerName);
         if (layer >= 0)
             wall.layer = layer;
 

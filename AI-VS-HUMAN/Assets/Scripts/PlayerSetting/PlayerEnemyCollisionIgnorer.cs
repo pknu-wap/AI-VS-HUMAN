@@ -3,7 +3,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class PlayerEnemyCollisionIgnorer : MonoBehaviour
 {
-    public float refreshInterval = 0.25f;
+    private const float RefreshInterval = 0.25f;
 
     private Collider2D[] playerColliders;
     private float refreshTimer;
@@ -17,7 +17,7 @@ public class PlayerEnemyCollisionIgnorer : MonoBehaviour
     private void Update()
     {
         refreshTimer += Time.deltaTime;
-        if (refreshTimer < refreshInterval)
+        if (refreshTimer < RefreshInterval)
             return;
 
         refreshTimer = 0f;

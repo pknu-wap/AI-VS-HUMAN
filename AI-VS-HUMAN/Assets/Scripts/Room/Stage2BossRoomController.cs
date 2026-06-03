@@ -4,30 +4,31 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class Stage2BossRoomController : MonoBehaviour
 {
-    [Header("References")]
+    private const float LockWallThickness = 1f;
+    private const float LockWallPadding = 0f;
+    private const string LockWallLayerName = "Ground";
+
+    [Header("참조")]
     public Transform player;
     public Room bossRoom;
     public RoomCameraController roomCameraController;
     public CoreXBoss boss;
 
-    [Header("Boss Activation")]
+    [Header("보스 활성화")]
     public bool hideSceneBossUntilRoomEntered = true;
     public bool enterWhenPlayerInsideRoom = true;
     public bool spawnOnlyOnce = true;
     public bool resetOnPlayerDeath = true;
 
-    [Header("Fallback Boss Spawn")]
+    [Header("예비 보스 소환")]
     public CoreXBoss bossPrefab;
     public Transform bossSpawnPoint;
     public Vector3 bossSpawnPosition = new Vector3(32f, 4f, 0f);
 
-    [Header("Boss Room Lock")]
+    [Header("보스룸 잠금")]
     public bool createBossLockWalls = true;
-    public float lockWallThickness = 1f;
-    public float lockWallPadding = 0f;
-    public string lockWallLayerName = "Ground";
 
-    [Header("Boss Clear Cleanup")]
+    [Header("보스 클리어 정리")]
     public bool destroyEnemiesInsideRoomOnBossDeath = true;
     public List<GameObject> enemiesToDestroyOnBossDeath = new List<GameObject>();
 
@@ -41,7 +42,7 @@ public class Stage2BossRoomController : MonoBehaviour
     private readonly List<GameObject> bossLockWalls = new List<GameObject>();
 
     
-    [Header("Boss Servers")]
+    [Header("보스 서버")]
     public ServerNode[] phase1Servers;
     public ServerNode[] phase2Servers;
     
@@ -406,8 +407,8 @@ public class Stage2BossRoomController : MonoBehaviour
             return;
 
         Bounds bounds = bossRoom.GetBounds();
-        float thickness = Mathf.Max(0.05f, lockWallThickness);
-        float padding = Mathf.Max(0f, lockWallPadding);
+        float thickness = Mathf.Max(0.05f, LockWallThickness);
+        float padding = Mathf.Max(0f, LockWallPadding);
         float width = bounds.size.x + padding * 2f + thickness * 2f;
         float height = bounds.size.y + padding * 2f + thickness * 2f;
 
@@ -434,7 +435,7 @@ public class Stage2BossRoomController : MonoBehaviour
         wall.transform.SetParent(transform, true);
         wall.transform.position = position;
 
-        int layer = LayerMask.NameToLayer(lockWallLayerName);
+        int layer = LayerMask.NameToLayer(LockWallLayerName);
         if (layer >= 0)
             wall.layer = layer;
 

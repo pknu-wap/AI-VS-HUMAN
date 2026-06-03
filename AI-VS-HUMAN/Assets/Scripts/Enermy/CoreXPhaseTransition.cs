@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class CoreXPhaseTransition : MonoBehaviour
 {
-    [Header("Phase 2")]
+    [Header("2페이즈")]
     public float phase2MaxHp = 1000f;
     public Color phase2Color = new Color(0.3f, 0f, 0.5f, 1f);
     public float transitionTime = 2f;

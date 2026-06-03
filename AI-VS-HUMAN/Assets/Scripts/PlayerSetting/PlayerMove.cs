@@ -9,6 +9,11 @@ using UnityEngine;
 [RequireComponent(typeof(Animator))]
 public class PlayerMove : MonoBehaviour
 {
+    private const float StopThreshold = 0.1f;
+    private const float DashTime = 0.2f;
+    private const float GroundCheckRadius = 0.2f;
+    private static readonly Vector2 GroundCheckOffset = new Vector2(0f, -0.5f);
+
     private const string IdleRightState = "IdleRight";
     private const string WalkRightState = "WalkRight";
     private const string JumpRightState = "JumpRight";
@@ -19,22 +24,18 @@ public class PlayerMove : MonoBehaviour
     [Header("이동")]
     [SerializeField] private float _moveSpd = 5f;
     [SerializeField] private float _jumpPower = 12f;
-    [SerializeField] private float _stopThreshold = 0.1f;
 
     [Header("대시")]
     [SerializeField] private float _dashPower = 20f;
-    [SerializeField] private float _dashTime = 0.2f;
     [SerializeField] private float _dashCooldown = 1f;
     private bool _canDash = true;
     private bool _isDashing;
     private Coroutine _dashCoroutine;
 
-    [Header("Ground Check")]
+    [Header("지면 감지")]
     [SerializeField] private LayerMask _groundLayer;
     [SerializeField] private LayerMask _platformLayer;
     [SerializeField] private int _maxJumpCount = 2;
-    [SerializeField] private float _groundCheckRadius = 0.2f; // 발밑을 검사하는 거리입니다.
-    [SerializeField] private Vector2 _groundCheckOffset = new Vector2(0f, -0.5f); // 플레이어 중심에서 발밑까지의 오프셋입니다.
 
     private Rigidbody2D _rigid;
     private Collider2D _collider;
@@ -105,7 +106,7 @@ public class PlayerMove : MonoBehaviour
         CheckGrounded();
 
         // 입력이 거의 없으면 X 속도를 바로 0으로 만들어 미끄러짐을 줄입니다.
-        float velX = Mathf.Abs(_currentX) < _stopThreshold ? 0f : _currentX * _moveSpd;
+        float velX = Mathf.Abs(_currentX) < StopThreshold ? 0f : _currentX * _moveSpd;
         _rigid.linearVelocity = new Vector2(velX, _rigid.linearVelocity.y);
 
         UpdateAnimationState();
@@ -114,7 +115,7 @@ public class PlayerMove : MonoBehaviour
     private void CheckGrounded()
     {
         // 발 기준 세 지점을 아래로 검사해서 모서리 위에서도 안정적으로 착지 판정을 합니다.
-        Vector2 feetPos = (Vector2)transform.position + _groundCheckOffset;
+        Vector2 feetPos = (Vector2)transform.position + GroundCheckOffset;
 
         bool wasGrounded = _isGrounded;
         _isGrounded = IsGroundBelow(feetPos);
@@ -123,9 +124,9 @@ public class PlayerMove : MonoBehaviour
         if (!wasGrounded && _isGrounded)
             _jumpRemain = _maxJumpCount;
 
-        Debug.DrawRay(feetPos, Vector2.down * _groundCheckRadius, Color.red);
-        Debug.DrawRay(feetPos + Vector2.left * 0.15f, Vector2.down * _groundCheckRadius, Color.red);
-        Debug.DrawRay(feetPos + Vector2.right * 0.15f, Vector2.down * _groundCheckRadius, Color.red);
+        Debug.DrawRay(feetPos, Vector2.down * GroundCheckRadius, Color.red);
+        Debug.DrawRay(feetPos + Vector2.left * 0.15f, Vector2.down * GroundCheckRadius, Color.red);
+        Debug.DrawRay(feetPos + Vector2.right * 0.15f, Vector2.down * GroundCheckRadius, Color.red);
     }
 
     private bool IsGroundBelow(Vector2 feetPos)
@@ -149,7 +150,7 @@ public class PlayerMove : MonoBehaviour
             origin + Vector2.up * 0.12f,
             Vector2.down,
             _groundHits,
-            _groundCheckRadius + 0.2f,
+            GroundCheckRadius + 0.2f,
             _groundLayer.value | _platformLayer.value);
 
         for (int i = 0; i < hitCount; i++)
@@ -180,7 +181,7 @@ public class PlayerMove : MonoBehaviour
     private void HandleMove(float x)
     {
         _currentX = x;
-        if (Mathf.Abs(x) > _stopThreshold)
+        if (Mathf.Abs(x) > StopThreshold)
             _facingDir = Mathf.Sign(x);
     }
 
@@ -204,7 +205,7 @@ public class PlayerMove : MonoBehaviour
         if (_animator == null) return;
 
         bool facingRight = _facingDir >= 0f;
-        bool isMoving = Mathf.Abs(_currentX) >= _stopThreshold;
+        bool isMoving = Mathf.Abs(_currentX) >= StopThreshold;
 
         string nextState;
         if (!_isGrounded)
@@ -237,10 +238,10 @@ public class PlayerMove : MonoBehaviour
         float originalGravity = _rigid.gravityScale;
         _rigid.gravityScale = 0f;
 
-        float dir = Mathf.Abs(_currentX) > _stopThreshold ? Mathf.Sign(_currentX) : _facingDir;
+        float dir = Mathf.Abs(_currentX) > StopThreshold ? Mathf.Sign(_currentX) : _facingDir;
         _rigid.linearVelocity = new Vector2(dir * _dashPower, 0f);
 
-        yield return new WaitForSeconds(_dashTime);
+        yield return new WaitForSeconds(DashTime);
 
         _rigid.gravityScale = originalGravity;
         _isDashing = false;

@@ -5,16 +5,17 @@ using System.Collections;
 
 public class HealDrone : MonoBehaviour, IDamageable
 {
-    [Header("泥대젰")]
+    private const float FadeDuration = 0.6f;
+    private const float HoverAmplitude = 0.25f;
+    private const float HoverFrequency = 6f;
+    private const float AttachDistance = 0.45f;
+
+    [Header("체력")]
     public float maxHp = 50f;
-    public float fadeDuration = 0.6f;
     public float lifeDrainPerSecond = 10f;
 
-    [Header("?대룞")]
+    [Header("이동")]
     public float moveSpeed = 6f;
-    public float hoverAmplitude = 0.25f;
-    public float hoverFrequency = 6f;
-    public float attachDistance = 0.45f;
 
     private float currentHp;
     private float side = 1f;
@@ -67,14 +68,14 @@ public class HealDrone : MonoBehaviour, IDamageable
 
         hoverTime += Time.deltaTime;
         Vector3 targetPosition = boss.GetHealDroneAttachPosition(side);
-        Vector3 bobOffset = Vector3.up * (Mathf.Sin(hoverTime * hoverFrequency) * hoverAmplitude);
+        Vector3 bobOffset = Vector3.up * (Mathf.Sin(hoverTime * HoverFrequency) * HoverAmplitude);
         Vector3 nextPosition = Vector3.MoveTowards(transform.position, targetPosition + bobOffset, moveSpeed * Time.deltaTime);
         transform.position = nextPosition;
 
         if (spriteRenderer != null)
             spriteRenderer.flipX = side < 0f;
 
-        if (Vector2.Distance(transform.position, targetPosition) <= attachDistance)
+        if (Vector2.Distance(transform.position, targetPosition) <= AttachDistance)
             AttachToBoss();
     }
 
@@ -144,10 +145,10 @@ public class HealDrone : MonoBehaviour, IDamageable
 
         Color startColor = spriteRenderer != null ? spriteRenderer.color : originalColor;
         float elapsed = 0f;
-        while (elapsed < fadeDuration)
+        while (elapsed < FadeDuration)
         {
             elapsed += Time.deltaTime;
-            float alpha = Mathf.Lerp(startColor.a, 0f, elapsed / fadeDuration);
+            float alpha = Mathf.Lerp(startColor.a, 0f, elapsed / FadeDuration);
             if (spriteRenderer != null)
                 spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
             yield return null;

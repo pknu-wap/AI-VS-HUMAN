@@ -4,16 +4,16 @@ using UnityEngine.InputSystem;
 
 public class RoomDebugTeleporter : MonoBehaviour
 {
-    [Header("References")]
+    [Header("참조")]
     public Transform player;
     public RoomCameraController roomCameraController;
 
-    [Header("Room Order")]
+    [Header("방 순서")]
     public List<Room> rooms = new List<Room>();
     public Vector2 roomTeleportPositionFromBottomLeft = new Vector2(4f, 3.5f);
     public bool resetRoomsOnTeleport = true;
 
-    [Header("Hotkeys")]
+    [Header("단축키")]
     public bool enableHotkeys = true;
     public bool requireCtrl = true;
 

@@ -4,23 +4,22 @@ using UnityEngine;
 [RequireComponent(typeof(GiantDrone))]
 public class GiantDroneUDashPattern : MonoBehaviour
 {
-    [Header("U자 돌진 (베지에 곡선)")]
+    private const float DashDropY = 6f;
+    private const float DashWidth = 10f;
+    private const float FanSpreadAngle = 150f;
+    private const int FanDashVolleyCount = 4;
+    private const float FanDashFireDelay = 0.25f;
+    private const float FanFireOffset = 0.8f;
+
+    [Header("돌진")]
     public float dashSpeed = 8f;
-    public float dashDropY = 6f;
-    public float dashWidth = 10f;
 
     [Header("부채꼴 탄막")]
     public GameObject fanBulletPrefab;
     public int fanBulletCount = 16;
-    public float fanSpreadAngle = 150f;
     public float fanBulletSpeed = 6f;
     public float fanBulletDamage = 1f;
     public float fanCooldown = 4f;
-
-    [Header("부채꼴 탄막 - 돌진 연동")]
-    public int fanDashVolleyCount = 4;
-    public float fanDashFireDelay = 0.25f;
-    public float fanFireOffset = 0.8f;
 
     public IEnumerator Run(GiantDrone boss)
     {
@@ -32,10 +31,10 @@ public class GiantDroneUDashPattern : MonoBehaviour
 
         Vector3 p0 = transform.position;
         float dirX = boss.player.position.x > transform.position.x ? 1f : -1f;
-        Vector3 p2 = new Vector3(p0.x + dashWidth * dirX, p0.y, 0f);
-        Vector3 p1 = new Vector3((p0.x + p2.x) * 0.5f, p0.y - (dashDropY * 2f), 0f);
+        Vector3 p2 = new Vector3(p0.x + DashWidth * dirX, p0.y, 0f);
+        Vector3 p1 = new Vector3((p0.x + p2.x) * 0.5f, p0.y - (DashDropY * 2f), 0f);
 
-        float duration = Mathf.Max(dashWidth / dashSpeed, 1.2f);
+        float duration = Mathf.Max(DashWidth / dashSpeed, 1.2f);
         float elapsed = 0f;
         int firedCount = 0;
         float nextFireTime = 0f;
@@ -57,13 +56,13 @@ public class GiantDroneUDashPattern : MonoBehaviour
                 break;
             }
 
-            if (easeT >= 0.2f && firedCount < fanDashVolleyCount)
+            if (easeT >= 0.2f && firedCount < FanDashVolleyCount)
             {
                 if (Time.time >= nextFireTime)
                 {
                     FireFanBullets(boss);
                     firedCount++;
-                    nextFireTime = Time.time + fanDashFireDelay;
+                    nextFireTime = Time.time + FanDashFireDelay;
                 }
             }
 
@@ -91,10 +90,10 @@ public class GiantDroneUDashPattern : MonoBehaviour
         if (aimDir.sqrMagnitude < 0.001f)
             aimDir = Vector2.down;
 
-        Vector3 firePos = transform.position + (Vector3)(aimDir * fanFireOffset);
+        Vector3 firePos = transform.position + (Vector3)(aimDir * FanFireOffset);
         float baseAngle = Mathf.Atan2(aimDir.y, aimDir.x) * Mathf.Rad2Deg;
-        float startAngle = baseAngle - fanSpreadAngle * 0.5f;
-        float step = fanBulletCount > 1 ? fanSpreadAngle / (fanBulletCount - 1) : 0f;
+        float startAngle = baseAngle - FanSpreadAngle * 0.5f;
+        float step = fanBulletCount > 1 ? FanSpreadAngle / (fanBulletCount - 1) : 0f;
 
         for (int i = 0; i < fanBulletCount; i++)
         {

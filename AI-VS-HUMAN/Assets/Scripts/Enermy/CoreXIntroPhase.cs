@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class CoreXIntroPhase : MonoBehaviour
 {
-    [Header("Intro")]
+    [Header("인트로")]
     public float startDelay = 1f;
 
     public IEnumerator Run(CoreXBoss boss)

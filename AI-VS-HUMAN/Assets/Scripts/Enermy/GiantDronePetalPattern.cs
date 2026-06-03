@@ -4,17 +4,20 @@ using UnityEngine;
 [RequireComponent(typeof(GiantDrone))]
 public class GiantDronePetalPattern : MonoBehaviour
 {
+    private const float FireInterval = 0.14f;
+    private const float Curvature = 1.2f;
+    private const float RotatePerShot = 8f;
+    private const float SpawnOffset = 1.5f;
+    private const float PetalMoveSpeedMultiplier = 0.45f;
+
     [Header("꽃잎 탄막")]
     public GameObject petalBulletPrefab;
     public int armCount = 6;
     public int bulletsPerArm = 14;
     public float bulletSpeed = 3f;
-    public float fireInterval = 0.14f;
-    public float curvature = 1.2f;
-    public float rotatePerShot = 8f;
-    public float spawnOffset = 1.5f;
     public float loopDelay = 3f;
-    public float moveSpeedMultiplier = 0.45f;
+
+    internal float MoveSpeedMultiplier => PetalMoveSpeedMultiplier;
 
     public IEnumerator Run(GiantDrone boss)
     {
@@ -38,11 +41,11 @@ public class GiantDronePetalPattern : MonoBehaviour
 
                 GameObject go = Instantiate(petalBulletPrefab, transform.position, Quaternion.identity);
                 PetalBullet pb = go.GetComponent<PetalBullet>() ?? go.AddComponent<PetalBullet>();
-                pb.Init(dir, bulletSpeed, curvature * curveDir, 3.5f, spawnOffset);
+                pb.Init(dir, bulletSpeed, Curvature * curveDir, 3.5f, SpawnOffset);
             }
 
-            boss.petalBaseAngle -= rotatePerShot;
-            yield return new WaitForSeconds(fireInterval);
+            boss.petalBaseAngle -= RotatePerShot;
+            yield return new WaitForSeconds(FireInterval);
         }
 
         boss.isDoingPetal = false;

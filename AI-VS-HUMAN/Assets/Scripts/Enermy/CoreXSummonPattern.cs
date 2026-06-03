@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class CoreXSummonPattern : MonoBehaviour
 {
-    [Header("Summon")]
+    [Header("소환")]
     public GameObject ghostPrefab;
     public GameObject shadowPrefab;
     public float interval = 8f;

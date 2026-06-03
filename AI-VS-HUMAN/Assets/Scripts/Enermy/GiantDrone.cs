@@ -18,9 +18,23 @@ using Action = System.Action;
 [RequireComponent(typeof(GiantDroneHealDronePattern))]
 public class GiantDrone : MonoBehaviour, IDamageable
 {
+    private const float DefaultFadeDuration = 2f;
+    private const float DefaultDetectionRange = 25f;
+    private const float DefaultHoverAmplitude = 0.4f;
+    private const float DefaultHoverFrequency = 1.2f;
+    private const float DefaultWallAvoidDistance = 1.8f;
+    private const float DefaultWallAvoidSpeed = 5f;
+    private const float DefaultWallCheckRadius = 0.45f;
+    private const float DefaultWallStopPadding = 0.2f;
+    private const float DefaultWallUnstuckPadding = 0.05f;
+    private const float DefaultWallSafeStepDistance = 0.2f;
+    private const int DefaultWallResolveIterations = 4;
+    private const float DefaultCameraEdgePadding = 0.5f;
+    private const float DefaultHpBarHeight = 26f;
+    private static readonly Color DefaultHpBarColor = new Color(0.9f, 0.1f, 0.1f);
+
     [Header("체력")]
     public float maxHp = 600f;
-    public float fadeDuration = 2f;
     internal float currentHp;
 
     public event Action HalfHealthReached;
@@ -28,131 +42,11 @@ public class GiantDrone : MonoBehaviour, IDamageable
     public float CurrentHp => currentHp;
     public float HealthRatio => maxHp <= 0f ? 0f : currentHp / maxHp;
 
-    [HideInInspector]
-    public float detectionRange = 25f;
-
-    [HideInInspector]
-    public bool keepInsideCameraView = false;
-    [HideInInspector]
-    public float cameraEdgePadding = 0.5f;
-
-    [HideInInspector]
-    public float moveSpeed = 2.5f;
-    [HideInInspector]
-    public float hoverAmplitude = 0.4f;
-    [HideInInspector]
-    public float hoverFrequency = 1.2f;
-    [HideInInspector]
-    public float swaySpeed = 1.5f;
-    [HideInInspector]
-    public float swayAmplitude = 3f;
-
-    [HideInInspector]
-    public float dashSpeed = 8f;
-    [HideInInspector]
-    public float dashDropY = 6f;
-    [HideInInspector]
-    public float dashWidth = 10f;
-
-    [HideInInspector]
-    public float wallAvoidDistance = 1.8f;
-    [HideInInspector]
-    public float wallAvoidSpeed = 5f;
-    [HideInInspector]
-    public float wallCheckRadius = 0.45f;
-    [HideInInspector]
-    public float wallStopPadding = 0.2f;
-    [HideInInspector]
-    public float wallUnstuckPadding = 0.05f;
-    [HideInInspector]
-    public float wallSafeStepDistance = 0.2f;
-    [HideInInspector]
-    public int wallResolveIterations = 4;
-
-    [HideInInspector]
-    public GameObject fanBulletPrefab;
-    [HideInInspector]
-    public int fanBulletCount = 16;
-    [HideInInspector]
-    public float fanSpreadAngle = 150f;
-    [HideInInspector]
-    public float fanBulletSpeed = 6f;
-    [HideInInspector]
-    public float fanBulletDamage = 1f;
-    [HideInInspector]
-    public float fanCooldown = 4f;
-
-    [HideInInspector]
-    public int fanDashVolleyCount = 4;
-    [HideInInspector]
-    public float fanDashFireDelay = 0.25f; // 발사 사이의 시간 간격 (초)
-    [HideInInspector]
-    public float fanFireOffset = 0.8f;
-
-    [HideInInspector]
-    public GameObject petalBulletPrefab;
-    [HideInInspector]
-    public int petalArmCount = 6;
-    [HideInInspector]
-    public int petalBulletsPerArm = 14;
-    [HideInInspector]
-    public float petalBulletSpeed = 3f;
-    [HideInInspector]
-    public float petalFireInterval = 0.14f;
-    [HideInInspector]
-    public float petalCurvature = 1.2f;
-    [HideInInspector]
-    public float petalRotatePerShot = 8f;
-    [HideInInspector]
-    public float petalSpawnOffset = 1.5f;
-    [HideInInspector]
-    public float petalLoopDelay = 3f;
-    [HideInInspector]
-    public float petalMoveSpeedMultiplier = 0.45f;
-
-    [HideInInspector]
-    public GameObject homingMissilePrefab;
-    [HideInInspector]
-    public float homingMissileDamage = 1f;
-    [HideInInspector]
-    public float homingMissileSpeed = 5f;
-    [HideInInspector]
-    public float homingMissileTurnSpeed = 180f;
-    [HideInInspector]
-    public float homingMissileDuration = 1.5f;
-    [HideInInspector]
-    public float homingMissileLifetime = 4f;
-    [HideInInspector]
-    public float homingMissileSpawnOffset = 1.2f;
-    [HideInInspector]
-    public float homingMissileCooldown = 3f;
-
-    [Header("HP 바")]
-    public Color hpBarColor = new Color(0.9f, 0.1f, 0.1f);
+    [Header("체력바")]
     public float hpBarPosY = -425f;
-    public float hpBarHeight = 26f;
 
-    [Header("Death")]
+    [Header("사망")]
     public bool deactivateOnDeathInsteadOfDestroy;
-
-    [HideInInspector]
-    public GameObject healDronePrefab;
-    [HideInInspector]
-    public int healDroneCount = 2;
-    [HideInInspector]
-    public float healDroneFirstDelay = 3f;
-    [HideInInspector]
-    public float healDroneRepeatDelay = 20f;
-    [HideInInspector]
-    public float healAmount = 30f; // 붙어 있는 회복 드론 1마리당 초당 회복량
-    [HideInInspector]
-    public float healDroneOffsetX = 3f;
-    [HideInInspector]
-    public float healDroneOffsetY = -1f;
-    [HideInInspector]
-    public float healDroneSpawnOutsidePadding = 2f;
-    [HideInInspector]
-    public float healDronePatternMinDuration = 5f;
 
     internal int   healDroneAliveCount = 0;
 
@@ -176,29 +70,28 @@ public class GiantDrone : MonoBehaviour, IDamageable
     internal Canvas         bossCanvas;
     internal Color          originalColor;
     internal bool           hasOriginalColor;
-    [Header("Phases")]
+    [Header("페이즈")]
     [SerializeField] internal GiantDronePhase1 phase1;
     [SerializeField] internal GiantDronePhase2 phase2;
 
-    [Header("Patterns")]
+    [Header("패턴")]
     [SerializeField] internal GiantDroneUDashPattern uDashPattern;
     [SerializeField] internal GiantDronePetalPattern petalPattern;
     [SerializeField] internal GiantDroneHomingMissilePattern homingMissilePattern;
     [SerializeField] internal GiantDroneHealDronePattern healDronePattern;
-    [HideInInspector] public bool migratedInspectorSettings;
     private readonly Collider2D[] wallOverlapHits = new Collider2D[8];
     private readonly RaycastHit2D[] wallCastHits = new RaycastHit2D[8];
     internal Vector3        lastSafePosition;
 
-    private float WallAvoidDistance => phase1 != null ? phase1.wallAvoidDistance : wallAvoidDistance;
-    private float WallAvoidSpeed => phase1 != null ? phase1.wallAvoidSpeed : wallAvoidSpeed;
-    private float WallCheckRadius => phase1 != null ? phase1.wallCheckRadius : wallCheckRadius;
-    private float WallStopPadding => phase1 != null ? phase1.wallStopPadding : wallStopPadding;
-    private float WallUnstuckPadding => phase1 != null ? phase1.wallUnstuckPadding : wallUnstuckPadding;
-    private float WallSafeStepDistance => phase1 != null ? phase1.wallSafeStepDistance : wallSafeStepDistance;
-    private int WallResolveIterations => phase1 != null ? phase1.wallResolveIterations : wallResolveIterations;
-    private bool KeepInsideCameraView => phase1 != null ? phase1.keepInsideCameraView : keepInsideCameraView;
-    private float CameraEdgePadding => phase1 != null ? phase1.cameraEdgePadding : cameraEdgePadding;
+    private float WallAvoidDistance => DefaultWallAvoidDistance;
+    private float WallAvoidSpeed => DefaultWallAvoidSpeed;
+    private float WallCheckRadius => DefaultWallCheckRadius;
+    private float WallStopPadding => DefaultWallStopPadding;
+    private float WallUnstuckPadding => DefaultWallUnstuckPadding;
+    private float WallSafeStepDistance => DefaultWallSafeStepDistance;
+    private int WallResolveIterations => DefaultWallResolveIterations;
+    private bool KeepInsideCameraView => false;
+    private float CameraEdgePadding => DefaultCameraEdgePadding;
 
     void Start()
     {
@@ -251,9 +144,6 @@ public class GiantDrone : MonoBehaviour, IDamageable
         StopCombatComponents();
         ConfigureRigidbody();
         MoveVisualCenterTo(spawnPosition);
-        keepInsideCameraView = false;
-        if (phase1 != null)
-            phase1.keepInsideCameraView = false;
         currentHp = maxHp;
         halfHealthNotified = false;
         isDead = false;
@@ -296,9 +186,6 @@ public class GiantDrone : MonoBehaviour, IDamageable
         CacheComponents();
         StopCombatComponents();
         ConfigureRigidbody();
-        keepInsideCameraView = false;
-        if (phase1 != null)
-            phase1.keepInsideCameraView = false;
         currentHp = maxHp;
         halfHealthNotified = false;
         isDead = false;
@@ -423,10 +310,10 @@ public class GiantDrone : MonoBehaviour, IDamageable
 
         float elapsed = 0f;
         Color startColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
-        while (elapsed < fadeDuration)
+        while (elapsed < DefaultFadeDuration)
         {
             elapsed += Time.deltaTime;
-            float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+            float alpha = Mathf.Lerp(1f, 0f, elapsed / DefaultFadeDuration);
             if (spriteRenderer != null)
                 spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
             yield return null;
@@ -459,7 +346,7 @@ public class GiantDrone : MonoBehaviour, IDamageable
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        float range = phase1 != null ? phase1.detectionRange : detectionRange;
+        float range = phase1 != null ? phase1.detectionRange : DefaultDetectionRange;
         Gizmos.DrawWireSphere(transform.position, range);
     }
 
@@ -476,8 +363,8 @@ public class GiantDrone : MonoBehaviour, IDamageable
         if (isDoingUDash)
             return;
 
-        float currentHoverFrequency = phase1 != null ? phase1.hoverFrequency : hoverFrequency;
-        float currentHoverAmplitude = phase1 != null ? phase1.hoverAmplitude : hoverAmplitude;
+        float currentHoverFrequency = phase1 != null ? phase1.HoverFrequency : DefaultHoverFrequency;
+        float currentHoverAmplitude = phase1 != null ? phase1.HoverAmplitude : DefaultHoverAmplitude;
         float targetY = baseY + Mathf.Sin(hoverTime * currentHoverFrequency) * currentHoverAmplitude;
         float nextY = Mathf.MoveTowards(transform.position.y, targetY, Mathf.Max(0f, followSpeed) * Time.deltaTime);
         Vector3 nextPosition = new Vector3(transform.position.x, nextY, transform.position.z);
@@ -494,7 +381,6 @@ public class GiantDrone : MonoBehaviour, IDamageable
         petalPattern = GetOrAddComponent(petalPattern);
         homingMissilePattern = GetOrAddComponent(homingMissilePattern);
         healDronePattern = GetOrAddComponent(healDronePattern);
-        MigrateLegacyInspectorSettings();
 
         if (spriteRenderer == null)
             spriteRenderer = GetComponent<SpriteRenderer>();
@@ -543,88 +429,6 @@ public class GiantDrone : MonoBehaviour, IDamageable
 
         isDoingUDash = false;
         isDoingPetal = false;
-    }
-
-    private void MigrateLegacyInspectorSettings()
-    {
-        if (migratedInspectorSettings)
-            return;
-
-        if (phase1 != null)
-        {
-            phase1.detectionRange = detectionRange;
-            phase1.keepInsideCameraView = keepInsideCameraView;
-            phase1.cameraEdgePadding = cameraEdgePadding;
-            phase1.moveSpeed = moveSpeed;
-            phase1.hoverAmplitude = hoverAmplitude;
-            phase1.hoverFrequency = hoverFrequency;
-            phase1.swaySpeed = swaySpeed;
-            phase1.swayAmplitude = swayAmplitude;
-            phase1.wallAvoidDistance = wallAvoidDistance;
-            phase1.wallAvoidSpeed = wallAvoidSpeed;
-            phase1.wallCheckRadius = wallCheckRadius;
-            phase1.wallStopPadding = wallStopPadding;
-            phase1.wallUnstuckPadding = wallUnstuckPadding;
-            phase1.wallSafeStepDistance = wallSafeStepDistance;
-            phase1.wallResolveIterations = wallResolveIterations;
-        }
-
-        if (uDashPattern != null)
-        {
-            uDashPattern.dashSpeed = dashSpeed;
-            uDashPattern.dashDropY = dashDropY;
-            uDashPattern.dashWidth = dashWidth;
-            uDashPattern.fanBulletPrefab = fanBulletPrefab;
-            uDashPattern.fanBulletCount = fanBulletCount;
-            uDashPattern.fanSpreadAngle = fanSpreadAngle;
-            uDashPattern.fanBulletSpeed = fanBulletSpeed;
-            uDashPattern.fanBulletDamage = fanBulletDamage;
-            uDashPattern.fanCooldown = fanCooldown;
-            uDashPattern.fanDashVolleyCount = fanDashVolleyCount;
-            uDashPattern.fanDashFireDelay = fanDashFireDelay;
-            uDashPattern.fanFireOffset = fanFireOffset;
-        }
-
-        if (petalPattern != null)
-        {
-            petalPattern.petalBulletPrefab = petalBulletPrefab;
-            petalPattern.armCount = petalArmCount;
-            petalPattern.bulletsPerArm = petalBulletsPerArm;
-            petalPattern.bulletSpeed = petalBulletSpeed;
-            petalPattern.fireInterval = petalFireInterval;
-            petalPattern.curvature = petalCurvature;
-            petalPattern.rotatePerShot = petalRotatePerShot;
-            petalPattern.spawnOffset = petalSpawnOffset;
-            petalPattern.loopDelay = petalLoopDelay;
-            petalPattern.moveSpeedMultiplier = petalMoveSpeedMultiplier;
-        }
-
-        if (homingMissilePattern != null)
-        {
-            homingMissilePattern.homingMissilePrefab = homingMissilePrefab;
-            homingMissilePattern.damage = homingMissileDamage;
-            homingMissilePattern.speed = homingMissileSpeed;
-            homingMissilePattern.turnSpeed = homingMissileTurnSpeed;
-            homingMissilePattern.homingDuration = homingMissileDuration;
-            homingMissilePattern.lifetime = homingMissileLifetime;
-            homingMissilePattern.spawnOffset = homingMissileSpawnOffset;
-            homingMissilePattern.cooldown = homingMissileCooldown;
-        }
-
-        if (healDronePattern != null)
-        {
-            healDronePattern.healDronePrefab = healDronePrefab;
-            healDronePattern.healDroneCount = healDroneCount;
-            healDronePattern.firstDelay = healDroneFirstDelay;
-            healDronePattern.repeatDelay = healDroneRepeatDelay;
-            healDronePattern.healAmount = healAmount;
-            healDronePattern.attachOffsetX = healDroneOffsetX;
-            healDronePattern.attachOffsetY = healDroneOffsetY;
-            healDronePattern.spawnOutsidePadding = healDroneSpawnOutsidePadding;
-            healDronePattern.minDuration = healDronePatternMinDuration;
-        }
-
-        migratedInspectorSettings = true;
     }
 
     private void ConfigureRigidbody()
@@ -1027,7 +831,7 @@ public class GiantDrone : MonoBehaviour, IDamageable
         RectTransform bgRt = bgObj.AddComponent<RectTransform>();
         bgRt.anchorMin = new Vector2(0.1f, 1f); bgRt.anchorMax = new Vector2(0.9f, 1f);
         bgRt.pivot = new Vector2(0.5f, 1f); bgRt.anchoredPosition = new Vector2(0f, hpBarPosY);
-        bgRt.sizeDelta = new Vector2(0f, hpBarHeight);
+        bgRt.sizeDelta = new Vector2(0f, DefaultHpBarHeight);
         bgObj.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
 
         CreateSlider(canvasObj);
@@ -1041,7 +845,7 @@ public class GiantDrone : MonoBehaviour, IDamageable
         RectTransform slRt = slObj.GetComponent<RectTransform>();
         slRt.anchorMin = new Vector2(0.1f, 1f); slRt.anchorMax = new Vector2(0.9f, 1f);
         slRt.pivot = new Vector2(0.5f, 1f); slRt.anchoredPosition = new Vector2(0f, hpBarPosY);
-        slRt.sizeDelta = new Vector2(0f, hpBarHeight);
+        slRt.sizeDelta = new Vector2(0f, DefaultHpBarHeight);
 
         GameObject fillArea = new GameObject("Fill Area");
         fillArea.transform.SetParent(slObj.transform, false);
@@ -1050,7 +854,7 @@ public class GiantDrone : MonoBehaviour, IDamageable
         GameObject fill = new GameObject("Fill");
         fill.transform.SetParent(fillArea.transform, false);
         SetFullRect(fill.AddComponent<RectTransform>());
-        fill.AddComponent<Image>().color = hpBarColor;
+        fill.AddComponent<Image>().color = DefaultHpBarColor;
 
         hpSlider.fillRect = fill.GetComponent<RectTransform>();
         hpSlider.minValue = 0f; hpSlider.maxValue = maxHp;

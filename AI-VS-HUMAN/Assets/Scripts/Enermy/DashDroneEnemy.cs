@@ -5,21 +5,20 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class DashDroneEnemy : EnemyBase
 {
-    [Header("Dash")]
+    private const float WindupTime = 0.3f;
+    private const float ObstacleCheckPadding = 0.08f;
+    private const float BounceForce = 7f;
+    private const float BounceDuration = 0.18f;
+    private static readonly float PlayerKnockbackForce = 6f;
+    private const float GroggyDuration = 1f;
+
+    [Header("돌진")]
     public float dashDistance = 8f;
     public float dashSpeed = 10f;
     public float dashCooldown = 2f;
-    public float windupTime = 0.3f;
-    public float obstacleCheckPadding = 0.08f;
 
-    [Header("Hit")]
+    [Header("피격")]
     public int contactDamage = 1;
-    public float bounceForce = 7f;
-    public float bounceDuration = 0.18f;
-    public float playerKnockbackForce = 6f;
-
-    [Header("Groggy")]
-    public float groggyDuration = 1f;
 
     private Rigidbody2D droneRb;
     private Collider2D droneCollider;
@@ -89,7 +88,7 @@ public class DashDroneEnemy : EnemyBase
         SetPositionLock(true);
         SetBodyColor(Color.yellow);
 
-        yield return new WaitForSeconds(Mathf.Max(0f, windupTime));
+        yield return new WaitForSeconds(Mathf.Max(0f, WindupTime));
 
         isPreparing = false;
 
@@ -197,9 +196,9 @@ public class DashDroneEnemy : EnemyBase
         SetBodyColor(new Color(1f, 0.45f, 0.2f));
 
         if (droneRb != null)
-            droneRb.linearVelocity = bounceDirection * bounceForce;
+            droneRb.linearVelocity = bounceDirection * BounceForce;
 
-        yield return new WaitForSeconds(Mathf.Max(0f, bounceDuration));
+        yield return new WaitForSeconds(Mathf.Max(0f, BounceDuration));
 
         if (droneRb != null)
             droneRb.linearVelocity = Vector2.zero;
@@ -222,7 +221,7 @@ public class DashDroneEnemy : EnemyBase
         SetPositionLock(true);
         SetBodyColor(Color.gray);
 
-        yield return new WaitForSeconds(Mathf.Max(0f, groggyDuration));
+        yield return new WaitForSeconds(Mathf.Max(0f, GroggyDuration));
 
         isGroggy = false;
         SetBodyColor(originalColor);
@@ -230,7 +229,7 @@ public class DashDroneEnemy : EnemyBase
 
     private void ApplyPlayerKnockback(PlayerHealth playerHealth)
     {
-        if (playerKnockbackForce <= 0f)
+        if (PlayerKnockbackForce <= 0f)
             return;
 
         Rigidbody2D playerRb = playerHealth.GetComponent<Rigidbody2D>();
@@ -241,7 +240,7 @@ public class DashDroneEnemy : EnemyBase
         if (knockbackDirection == Vector2.zero)
             knockbackDirection = dashDirection;
 
-        playerRb.linearVelocity = knockbackDirection * playerKnockbackForce;
+        playerRb.linearVelocity = knockbackDirection * PlayerKnockbackForce;
     }
 
     private PlayerHealth GetPlayerHealth(Collider2D hitCollider)
@@ -283,7 +282,7 @@ public class DashDroneEnemy : EnemyBase
             return false;
 
         Bounds bounds = droneCollider.bounds;
-        float castDistance = Mathf.Max(obstacleCheckPadding, Mathf.Abs(dashSpeed) * Time.fixedDeltaTime + obstacleCheckPadding);
+        float castDistance = Mathf.Max(ObstacleCheckPadding, Mathf.Abs(dashSpeed) * Time.fixedDeltaTime + ObstacleCheckPadding);
         int layerMask = obstacleLayer.value != 0 ? obstacleLayer.value : Physics2D.DefaultRaycastLayers;
 
         ContactFilter2D filter = new ContactFilter2D();

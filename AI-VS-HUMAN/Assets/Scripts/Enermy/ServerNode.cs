@@ -7,9 +7,10 @@ using System.Collections;
 /// </summary>
 public class ServerNode : MonoBehaviour, IDamageable
 {
+    private const float FadeDuration = 0.5f;
+
     [Header("스탯")]
     public float maxHp        = 30f;
-    public float fadeDuration = 0.5f;
 
     private float          currentHp;
     private bool           isDead = false;
@@ -79,12 +80,12 @@ public class ServerNode : MonoBehaviour, IDamageable
 
         // 페이드 아웃
         float elapsed = 0f;
-        while (elapsed < fadeDuration)
+        while (elapsed < FadeDuration)
         {
             elapsed += Time.deltaTime;
             if (sr != null)
                 sr.color = new Color(originalColor.r, originalColor.g, originalColor.b,
-                                     Mathf.Lerp(1f, 0f, elapsed / fadeDuration));
+                                     Mathf.Lerp(1f, 0f, elapsed / FadeDuration));
             yield return null;
         }
 

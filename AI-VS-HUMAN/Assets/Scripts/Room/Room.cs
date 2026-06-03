@@ -3,11 +3,11 @@ using UnityEngine;
 [ExecuteAlways]
 public class Room : MonoBehaviour
 {
-    [Header("Room Size")]
+    [Header("방 크기")]
     [Min(1)] public int nX = 1;
     [Min(1)] public int nY = 1;
 
-    [Header("Respawn")]
+    [Header("리스폰")]
     public bool useRespawnPosition;
     public Vector3 respawnPosition;
     public Transform respawnPoint;

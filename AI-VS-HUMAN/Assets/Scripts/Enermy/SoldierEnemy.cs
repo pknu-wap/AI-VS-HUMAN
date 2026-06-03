@@ -9,6 +9,12 @@ using System.Collections;
 // - 장애물 감지로 벽 너머 사격 방지
 public class SoldierEnemy : EnemyBase
 {
+    private const float BurstInterval = 0.15f;
+    private static readonly bool UseLineOfSight = true;
+    private const float PredictiveAimStrength = 0.65f;
+    private const float MaxPredictionTime = 0.8f;
+    private const float GravityScale = 1f;
+
     [Header("공격")]
     public GameObject bulletPrefab;
     public Transform  firePoint;
@@ -16,21 +22,16 @@ public class SoldierEnemy : EnemyBase
     public float bulletSpeed    = 8f;
     public float attackCooldown = 2.5f;
     public int   bulletsPerBurst = 3;
-    public float burstInterval  = 0.15f;
 
     [Header("조준")]
     public float aimDelay       = 0.6f;   // 발사 전 경고 시간
-    public bool  useLineOfSight = true;   // 장애물 감지 여부
 
     [Header("예측샷")]
     [Range(0f, 1f)] public float predictiveShotChance = 0.3f;
-    public float predictiveAimStrength = 0.65f;
-    public float maxPredictionTime = 0.8f;
 
     [Header("이동")]
     public float moveSpeed = 1.2f;
     public float stopDistance = 3.5f;
-    public float gravityScale = 1f;
 
     private float attackTimer  = 0f;
     private bool  isAttacking  = false;
@@ -92,7 +93,7 @@ public class SoldierEnemy : EnemyBase
     void CheckPlayerSight()
     {
         if (!IsPlayerInDetectionRange()) { playerInSight = false; return; }
-        if (!useLineOfSight)             { playerInSight = true;  return; }
+        if (!UseLineOfSight)             { playerInSight = true;  return; }
 
         Vector2      origin = firePoint != null ? (Vector2)firePoint.position : (Vector2)transform.position;
         float        dist   = Vector2.Distance(origin, player.position);
@@ -121,7 +122,7 @@ public class SoldierEnemy : EnemyBase
         {
             if (isDead || !playerInSight) break;
             FireBullet();
-            yield return new WaitForSeconds(burstInterval);
+            yield return new WaitForSeconds(BurstInterval);
         }
 
         isAttacking = false;
@@ -159,8 +160,8 @@ public class SoldierEnemy : EnemyBase
         Vector2 playerPosition = player.position;
         float distance = Vector2.Distance(firePosition, playerPosition);
         float safeBulletSpeed = Mathf.Max(0.01f, bulletSpeed);
-        float predictionTime = Mathf.Min(distance / safeBulletSpeed, Mathf.Max(0f, maxPredictionTime));
-        Vector2 predictedPosition = playerPosition + playerRigidbody.linearVelocity * predictionTime * predictiveAimStrength;
+        float predictionTime = Mathf.Min(distance / safeBulletSpeed, Mathf.Max(0f, MaxPredictionTime));
+        Vector2 predictedPosition = playerPosition + playerRigidbody.linearVelocity * predictionTime * PredictiveAimStrength;
 
         return (predictedPosition - firePosition).normalized;
     }
@@ -178,7 +179,7 @@ public class SoldierEnemy : EnemyBase
             return;
 
         soldierRigidbody.bodyType = RigidbodyType2D.Dynamic;
-        soldierRigidbody.gravityScale = gravityScale;
+        soldierRigidbody.gravityScale = GravityScale;
         soldierRigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
     }
 

@@ -5,28 +5,27 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class DashEnemy : EnemyBase
 {
-    [Header("Dash")]
+    private const float WindupTime = 0.25f;
+    private const float GravityScale = 1f;
+    private const float DelayedDashWindupTime = 0.75f;
+    private const float DelayedDashSpeedMultiplier = 0.55f;
+    private const float BounceForce = 8f;
+    private const float BounceDuration = 0.18f;
+    private static readonly float PlayerKnockbackForce = 5f;
+    private const float GroggyDuration = 1.2f;
+    private const float WallNormalThreshold = 0.35f;
+    private const float WallCheckPadding = 0.08f;
+
+    [Header("돌진")]
     public float dashDistance = 10f;
     public float dashSpeed = 12f;
     public float dashCooldown = 1.5f;
-    public float windupTime = 0.25f;
-    public float gravityScale = 1f;
 
-    [Header("Delayed Dash")]
+    [Header("시간차 돌진")]
     [Range(0f, 1f)] public float delayedDashChance = 0.3f;
-    public float delayedDashWindupTime = 0.75f;
-    public float delayedDashSpeedMultiplier = 0.55f;
 
-    [Header("Hit")]
+    [Header("피격")]
     public int contactDamage = 1;
-    public float bounceForce = 8f;
-    public float bounceDuration = 0.18f;
-    public float playerKnockbackForce = 5f;
-
-    [Header("Groggy")]
-    public float groggyDuration = 1.2f;
-    public float wallNormalThreshold = 0.35f;
-    public float wallCheckPadding = 0.08f;
 
     private Rigidbody2D dashRb;
     private Collider2D dashCollider;
@@ -96,7 +95,7 @@ public class DashEnemy : EnemyBase
         isPreparing = true;
         SetBodyColor(useDelayedDash ? new Color(1f, 0.65f, 0.1f) : Color.yellow);
 
-        float prepareTime = useDelayedDash ? delayedDashWindupTime : windupTime;
+        float prepareTime = useDelayedDash ? DelayedDashWindupTime : WindupTime;
         yield return new WaitForSeconds(Mathf.Max(0f, prepareTime));
 
         isPreparing = false;
@@ -115,7 +114,7 @@ public class DashEnemy : EnemyBase
     private void BeginDash(bool useDelayedDash)
     {
         dashDirection = HorizontalDirectionToPlayer();
-        float speedMultiplier = useDelayedDash ? Mathf.Max(0.05f, delayedDashSpeedMultiplier) : 1f;
+        float speedMultiplier = useDelayedDash ? Mathf.Max(0.05f, DelayedDashSpeedMultiplier) : 1f;
         currentDashSpeed = dashSpeed * speedMultiplier;
 
         dashStartPosition = transform.position;
@@ -207,9 +206,9 @@ public class DashEnemy : EnemyBase
         SetBodyColor(new Color(1f, 0.45f, 0.2f));
 
         if (dashRb != null)
-            dashRb.linearVelocity = new Vector2(bounceDirection.x * bounceForce, dashRb.linearVelocity.y);
+            dashRb.linearVelocity = new Vector2(bounceDirection.x * BounceForce, dashRb.linearVelocity.y);
 
-        yield return new WaitForSeconds(Mathf.Max(0f, bounceDuration));
+        yield return new WaitForSeconds(Mathf.Max(0f, BounceDuration));
 
         if (dashRb != null)
             dashRb.linearVelocity = new Vector2(0f, dashRb.linearVelocity.y);
@@ -232,7 +231,7 @@ public class DashEnemy : EnemyBase
         SetHorizontalLock(true);
         SetBodyColor(Color.gray);
 
-        yield return new WaitForSeconds(Mathf.Max(0f, groggyDuration));
+        yield return new WaitForSeconds(Mathf.Max(0f, GroggyDuration));
 
         isGroggy = false;
         SetBodyColor(originalColor);
@@ -240,7 +239,7 @@ public class DashEnemy : EnemyBase
 
     private void ApplyPlayerKnockback(PlayerHealth playerHealth)
     {
-        if (playerKnockbackForce <= 0f)
+        if (PlayerKnockbackForce <= 0f)
             return;
 
         Rigidbody2D playerRb = playerHealth.GetComponent<Rigidbody2D>();
@@ -248,7 +247,7 @@ public class DashEnemy : EnemyBase
             return;
 
         float knockbackX = playerHealth.transform.position.x >= transform.position.x ? 1f : -1f;
-        playerRb.linearVelocity = new Vector2(knockbackX * playerKnockbackForce, playerRb.linearVelocity.y);
+        playerRb.linearVelocity = new Vector2(knockbackX * PlayerKnockbackForce, playerRb.linearVelocity.y);
     }
 
     private PlayerHealth GetPlayerHealth(Collider2D hitCollider)
@@ -294,7 +293,7 @@ public class DashEnemy : EnemyBase
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector2 normal = collision.GetContact(i).normal;
-            if (Mathf.Abs(normal.x) < wallNormalThreshold)
+            if (Mathf.Abs(normal.x) < WallNormalThreshold)
                 continue;
 
             bounceDirection = normal.x >= 0f ? Vector2.right : Vector2.left;
@@ -313,7 +312,7 @@ public class DashEnemy : EnemyBase
 
         Bounds bounds = dashCollider.bounds;
         Vector2 direction = dashDirection.x >= 0f ? Vector2.right : Vector2.left;
-        float castDistance = Mathf.Max(wallCheckPadding, Mathf.Abs(currentDashSpeed) * Time.fixedDeltaTime + wallCheckPadding);
+        float castDistance = Mathf.Max(WallCheckPadding, Mathf.Abs(currentDashSpeed) * Time.fixedDeltaTime + WallCheckPadding);
         int layerMask = obstacleLayer.value != 0 ? obstacleLayer.value : Physics2D.DefaultRaycastLayers;
 
         ContactFilter2D filter = new ContactFilter2D();
@@ -335,7 +334,7 @@ public class DashEnemy : EnemyBase
             if (hit.collider == null || hit.collider == dashCollider || !IsObstacle(hit.collider))
                 continue;
 
-            if (Mathf.Abs(hit.normal.x) < wallNormalThreshold)
+            if (Mathf.Abs(hit.normal.x) < WallNormalThreshold)
                 continue;
 
             bounceDirection = hit.normal.x >= 0f ? Vector2.right : Vector2.left;
@@ -352,7 +351,7 @@ public class DashEnemy : EnemyBase
             return;
 
         dashRb.bodyType = RigidbodyType2D.Dynamic;
-        dashRb.gravityScale = gravityScale;
+        dashRb.gravityScale = GravityScale;
         dashRb.constraints |= RigidbodyConstraints2D.FreezeRotation;
         dashRb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         SetHorizontalLock(true);

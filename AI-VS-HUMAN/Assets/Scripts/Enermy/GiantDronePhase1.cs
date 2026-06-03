@@ -4,31 +4,21 @@ using UnityEngine;
 [RequireComponent(typeof(GiantDrone))]
 public class GiantDronePhase1 : MonoBehaviour
 {
+    private const float DefaultHoverAmplitude = 0.4f;
+    private const float DefaultHoverFrequency = 1.2f;
+    private const float DefaultSwaySpeed = 1.5f;
+    private const float DefaultSwayAmplitude = 3f;
+
     [Header("감지")]
     public float detectionRange = 25f;
 
-    [Header("Camera Bounds")]
-    public bool keepInsideCameraView = false;
-    public float cameraEdgePadding = 0.5f;
-
     [Header("이동")]
     public float moveSpeed = 2.5f;
-    public float hoverAmplitude = 0.4f;
-    public float hoverFrequency = 1.2f;
-    public float swaySpeed = 1.5f;
-    public float swayAmplitude = 3f;
-
-    [Header("벽 회피")]
-    public float wallAvoidDistance = 1.8f;
-    public float wallAvoidSpeed = 5f;
-    public float wallCheckRadius = 0.45f;
-    public float wallStopPadding = 0.2f;
-    public float wallUnstuckPadding = 0.05f;
-    public float wallSafeStepDistance = 0.2f;
-    public int wallResolveIterations = 4;
 
     private GiantDrone boss;
     private Coroutine attackLoopCoroutine;
+    internal float HoverAmplitude => DefaultHoverAmplitude;
+    internal float HoverFrequency => DefaultHoverFrequency;
 
     private void Awake()
     {
@@ -144,11 +134,11 @@ public class GiantDronePhase1 : MonoBehaviour
             boss.player.position.x,
             moveSpeed * 0.5f * Time.deltaTime);
 
-        float bob = Mathf.Sin(boss.hoverTime * hoverFrequency) * hoverAmplitude;
-        float targetX = boss.swayBaseX + Mathf.Sin(boss.swayTime * swaySpeed) * swayAmplitude;
+        float bob = Mathf.Sin(boss.hoverTime * DefaultHoverFrequency) * DefaultHoverAmplitude;
+        float targetX = boss.swayBaseX + Mathf.Sin(boss.swayTime * DefaultSwaySpeed) * DefaultSwayAmplitude;
         float targetY = boss.baseY + bob;
         float currentMoveSpeed = boss.isDoingPetal
-            ? moveSpeed * (boss.petalPattern != null ? boss.petalPattern.moveSpeedMultiplier : 1f)
+            ? moveSpeed * (boss.petalPattern != null ? boss.petalPattern.MoveSpeedMultiplier : 1f)
             : moveSpeed;
 
         float newX = Mathf.MoveTowards(transform.position.x, targetX, currentMoveSpeed * Time.deltaTime);

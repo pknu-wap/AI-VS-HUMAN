@@ -1,11 +1,17 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class AssaultRifle : MonoBehaviour
 {
-    [Header("Rifle Settings")]
+    private const float BulletWidth = 0.08f;
+    private const float BulletLength = 0.3f;
+    private const int MaxBullets = 10;
+    private const float BulletLifetime = 0.5f;
+    private const bool PollMouseInput = true;
+    private static readonly Color BulletColor = Color.yellow;
+
+    [Header("소총")]
     [SerializeField] private float _damage = 10f;
     [SerializeField] private float _bulletSpeed = 25f;
     [SerializeField] private float _maxDistance = 20f;
@@ -13,39 +19,24 @@ public class AssaultRifle : MonoBehaviour
     [SerializeField] private LayerMask _enemyLayer;
     [SerializeField] private LayerMask _wallLayer;
 
-    [Header("Bullet Visual")]
-    [SerializeField] private Color _bulletColor = Color.yellow;
-    [SerializeField] private float _bulletWidth = 0.08f;
-    [SerializeField] private float _bulletLength = 0.3f;
-
-    [Header("입력 보정")]
-    [SerializeField] private bool _pollMouseInput = true;
-
-    [Header("성능 설정")]
-    [SerializeField] private int _maxBullets = 10;      // 동시에 존재할 수 있는 최대 총알 수
-    [SerializeField] private float _bulletLifetime = 0.5f; // 총알 최대 수명 (초)
-
     private InputController _input;
     private Camera _cam;
     private bool _canFire = true;
     private static Material _lineMaterial;
-
-    // 현재 살아있는 총알 추적
-    private List<Coroutine> _activeBullets = new List<Coroutine>();
-    private int _currentBulletCount = 0;
+    private int _currentBulletCount;
 
     private void Awake()
     {
         _input = GetComponent<InputController>();
-        _cam   = Camera.main;
+        _cam = Camera.main;
 
-        _input.OnFireEvent += HandleFire;
+        if (_input != null)
+            _input.OnFireEvent += HandleFire;
     }
 
     private void Update()
     {
-        // 빌드 환경에서 PlayerInput 메시지가 누락되어도 마우스를 누른 순간만 직접 읽어 단발 발사가 되게 한다.
-        if (!_pollMouseInput || Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
+        if (!PollMouseInput || Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
             return;
 
         HandleFire(GetMouseWorldPosition());
@@ -53,13 +44,11 @@ public class AssaultRifle : MonoBehaviour
 
     private void HandleFire(Vector2 mousePos)
     {
-        if (!_canFire) return;
+        if (!_canFire || _currentBulletCount >= MaxBullets)
+            return;
 
-        // 최대 총알 수 초과 시 발사 안 함
-        if (_currentBulletCount >= _maxBullets) return;
-
-        Vector2 origin = new Vector2(transform.position.x, transform.position.y);
-        Vector2 dir    = (mousePos - origin).normalized;
+        Vector2 origin = transform.position;
+        Vector2 dir = (mousePos - origin).normalized;
 
         StartCoroutine(MoveBullet(origin, dir));
         StartCoroutine(FireCooldown());
@@ -76,60 +65,32 @@ public class AssaultRifle : MonoBehaviour
     {
         _currentBulletCount++;
 
-        GameObject   bullet = new GameObject("Bullet");
-        LineRenderer lr     = bullet.AddComponent<LineRenderer>();
-
-        lr.material = new Material(
-            Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply"));
-        lr.startColor    = _bulletColor;
-        lr.endColor      = new Color(_bulletColor.r, _bulletColor.g, _bulletColor.b, 0f);
-        lr.startWidth    = _bulletWidth;
-        lr.endWidth      = _bulletWidth * 0.3f;
-        lr.positionCount = 2;
-        lr.useWorldSpace = true;
-        lr.sortingOrder  = 100;
+        GameObject bullet = new GameObject("Bullet");
+        LineRenderer lineRenderer = bullet.AddComponent<LineRenderer>();
+        ConfigureBulletLine(lineRenderer);
 
         float traveledDistance = 0f;
-        bool  shouldDestroy    = false;
-        float timeAlive        = 0f;
+        float timeAlive = 0f;
+        bool shouldDestroy = false;
 
-        while (traveledDistance < _maxDistance && timeAlive < _bulletLifetime)
+        while (traveledDistance < _maxDistance && timeAlive < BulletLifetime)
         {
-            float step        = _bulletSpeed * Time.deltaTime;
+            float step = _bulletSpeed * Time.deltaTime;
             traveledDistance += step;
-            timeAlive        += Time.deltaTime;
+            timeAlive += Time.deltaTime;
 
             Vector2 currentPos = origin + dir * traveledDistance;
-            Vector2 tailPos    = currentPos - dir * _bulletLength;
+            Vector2 tailPos = currentPos - dir * BulletLength;
 
             if (bullet != null)
             {
                 bullet.transform.position = new Vector3(currentPos.x, currentPos.y, 0f);
-                lr.SetPosition(0, new Vector3(tailPos.x,    tailPos.y,    0f));
-                lr.SetPosition(1, new Vector3(currentPos.x, currentPos.y, 0f));
+                lineRenderer.SetPosition(0, new Vector3(tailPos.x, tailPos.y, 0f));
+                lineRenderer.SetPosition(1, new Vector3(currentPos.x, currentPos.y, 0f));
             }
 
-            // 적 충돌
-            RaycastHit2D enemyHit = Physics2D.Raycast(
-                currentPos - dir * step, dir, step, _enemyLayer);
-
-            if (enemyHit.collider != null)
+            if (TryHitTarget(currentPos - dir * step, dir, step))
             {
-                if (enemyHit.collider.TryGetComponent<IDamageable>(out var target))
-                    target.TakeDamage(_damage);
-
-                StartCoroutine(HitEffect(enemyHit.point));
-                shouldDestroy = true;
-                break;
-            }
-
-            // 벽 충돌
-            RaycastHit2D wallHit = Physics2D.Raycast(
-                currentPos - dir * step, dir, step, _wallLayer);
-
-            if (wallHit.collider != null)
-            {
-                StartCoroutine(HitEffect(wallHit.point));
                 shouldDestroy = true;
                 break;
             }
@@ -139,34 +100,70 @@ public class AssaultRifle : MonoBehaviour
 
         _currentBulletCount--;
 
-        if (bullet != null)
+        if (bullet == null)
+            yield break;
+
+        if (shouldDestroy)
         {
-            if (shouldDestroy)
-                Destroy(bullet);
-            else
-            {
-                // 수명 다 됐거나 최대 거리 도달 시 빠르게 페이드
-                yield return StartCoroutine(FadeBullet(lr));
-                if (bullet != null) Destroy(bullet);
-            }
+            Destroy(bullet);
+            yield break;
         }
+
+        yield return StartCoroutine(FadeBullet(lineRenderer));
+        if (bullet != null)
+            Destroy(bullet);
     }
 
-    private IEnumerator FadeBullet(LineRenderer lr)
+    private void ConfigureBulletLine(LineRenderer lineRenderer)
     {
-        if (lr == null) yield break;
+        lineRenderer.material = GetLineMaterial();
+        lineRenderer.startColor = BulletColor;
+        lineRenderer.endColor = new Color(BulletColor.r, BulletColor.g, BulletColor.b, 0f);
+        lineRenderer.startWidth = BulletWidth;
+        lineRenderer.endWidth = BulletWidth * 0.3f;
+        lineRenderer.positionCount = 2;
+        lineRenderer.useWorldSpace = true;
+        lineRenderer.sortingOrder = 100;
+    }
 
-        float elapsed  = 0f;
-        float fadeTime = 0.05f;     // 0.1 → 0.05 로 단축
+    private bool TryHitTarget(Vector2 origin, Vector2 dir, float distance)
+    {
+        RaycastHit2D enemyHit = Physics2D.Raycast(origin, dir, distance, _enemyLayer);
+        if (enemyHit.collider != null)
+        {
+            if (enemyHit.collider.TryGetComponent<IDamageable>(out var target))
+                target.TakeDamage(_damage);
+
+            StartCoroutine(HitEffect(enemyHit.point));
+            return true;
+        }
+
+        RaycastHit2D wallHit = Physics2D.Raycast(origin, dir, distance, _wallLayer);
+        if (wallHit.collider != null)
+        {
+            StartCoroutine(HitEffect(wallHit.point));
+            return true;
+        }
+
+        return false;
+    }
+
+    private IEnumerator FadeBullet(LineRenderer lineRenderer)
+    {
+        if (lineRenderer == null)
+            yield break;
+
+        const float fadeTime = 0.05f;
+        float elapsed = 0f;
 
         while (elapsed < fadeTime)
         {
             elapsed += Time.deltaTime;
             float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeTime);
-            if (lr != null)
+            if (lineRenderer != null)
             {
-                lr.startColor = new Color(_bulletColor.r, _bulletColor.g, _bulletColor.b, alpha);
-                lr.endColor   = new Color(_bulletColor.r, _bulletColor.g, _bulletColor.b, 0f);
+                lineRenderer.startColor = new Color(BulletColor.r, BulletColor.g, BulletColor.b, alpha);
+                lineRenderer.endColor = new Color(BulletColor.r, BulletColor.g, BulletColor.b, 0f);
             }
             yield return null;
         }
@@ -174,30 +171,30 @@ public class AssaultRifle : MonoBehaviour
 
     private IEnumerator HitEffect(Vector2 pos)
     {
-        GameObject   effect = new GameObject("HitEffect");
+        GameObject effect = new GameObject("HitEffect");
         effect.transform.position = new Vector3(pos.x, pos.y, 0f);
 
-        LineRenderer lr  = effect.AddComponent<LineRenderer>();
-        lr.sharedMaterial = GetLineMaterial();
-        lr.startColor    = Color.white;
-        lr.endColor      = new Color(1f, 1f, 0f, 0f);
-        lr.startWidth    = _bulletWidth * 3f;
-        lr.endWidth      = 0f;
-        lr.positionCount = 2;
-        lr.useWorldSpace = true;
-        lr.sortingOrder  = 100;
-        lr.SetPosition(0, new Vector3(pos.x, pos.y,        0f));
-        lr.SetPosition(1, new Vector3(pos.x, pos.y + 0.3f, 0f));
+        LineRenderer lineRenderer = effect.AddComponent<LineRenderer>();
+        lineRenderer.sharedMaterial = GetLineMaterial();
+        lineRenderer.startColor = Color.white;
+        lineRenderer.endColor = new Color(1f, 1f, 0f, 0f);
+        lineRenderer.startWidth = BulletWidth * 3f;
+        lineRenderer.endWidth = 0f;
+        lineRenderer.positionCount = 2;
+        lineRenderer.useWorldSpace = true;
+        lineRenderer.sortingOrder = 100;
+        lineRenderer.SetPosition(0, new Vector3(pos.x, pos.y, 0f));
+        lineRenderer.SetPosition(1, new Vector3(pos.x, pos.y + 0.3f, 0f));
 
-        float elapsed  = 0f;
-        float fadeTime = 0.1f;
+        const float fadeTime = 0.1f;
+        float elapsed = 0f;
 
         while (elapsed < fadeTime)
         {
             elapsed += Time.deltaTime;
             float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeTime);
-            if (lr != null)
-                lr.startColor = new Color(1f, 1f, 1f, alpha);
+            if (lineRenderer != null)
+                lineRenderer.startColor = new Color(1f, 1f, 1f, alpha);
             yield return null;
         }
 
@@ -231,19 +228,19 @@ public class AssaultRifle : MonoBehaviour
 
     private static Material GetLineMaterial()
     {
-        if (_lineMaterial == null)
-        {
-            Shader shader = Shader.Find("Sprites/Default");
-            if (shader == null)
-                shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-            if (shader == null)
-                shader = Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply");
-            if (shader == null)
-                shader = Shader.Find("UI/Default");
-                
-            _lineMaterial = new Material(shader);
-            _lineMaterial.name = "AssaultRifle Line Material";
-        }
+        if (_lineMaterial != null)
+            return _lineMaterial;
+
+        Shader shader = Shader.Find("Sprites/Default");
+        if (shader == null)
+            shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+        if (shader == null)
+            shader = Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply");
+        if (shader == null)
+            shader = Shader.Find("UI/Default");
+
+        _lineMaterial = new Material(shader);
+        _lineMaterial.name = "AssaultRifle Line Material";
         return _lineMaterial;
     }
 }

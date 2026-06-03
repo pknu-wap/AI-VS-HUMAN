@@ -5,13 +5,15 @@ using System.Collections;
 
 public class ShieldEnemy : EnemyBase
 {
+    private const float ShieldOffsetX = 0.6f;
+    private const float WindupTime = 0.8f;
+
     [Header("이동")]
     public float moveSpeed = 2f;
     public float stopDistance = 2.5f;
 
     [Header("방패")]
     public Transform shieldTransform;
-    public float shieldOffsetX = 0.6f;
 
     [Header("탄막")]
     public GameObject bulletPrefab;
@@ -19,7 +21,6 @@ public class ShieldEnemy : EnemyBase
     public float bulletSpeed = 5f;
     public float bulletDamage = 1f;
     public float attackCooldown = 3f;
-    public float windupTime = 0.8f;
 
     private SpriteRenderer shieldSr;
     private float attackTimer = 0f;
@@ -33,7 +34,7 @@ public class ShieldEnemy : EnemyBase
         if (shieldTransform != null)
         {
             shieldSr = shieldTransform.GetComponent<SpriteRenderer>();
-            shieldTransform.localPosition = new Vector3(-shieldOffsetX, 0f, 0f);
+            shieldTransform.localPosition = new Vector3(-ShieldOffsetX, 0f, 0f);
 
             if (shieldSr != null)
                 shieldSr.flipX = true;
@@ -99,7 +100,7 @@ public class ShieldEnemy : EnemyBase
         if (spriteRenderer != null)
             spriteRenderer.color = Color.yellow;
 
-        yield return new WaitForSeconds(windupTime);
+        yield return new WaitForSeconds(WindupTime);
 
         if (isDead)
         {
