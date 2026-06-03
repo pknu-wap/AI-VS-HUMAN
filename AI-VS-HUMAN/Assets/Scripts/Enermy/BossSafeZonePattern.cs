@@ -143,7 +143,7 @@ public class BossSafeZonePattern : MonoBehaviour
 
             if (startWhenBossDetectsPlayer)
             {
-                float range = boss != null ? boss.detectionRange : bossDetectionRange;
+                float range = boss != null && boss.phase1 != null ? boss.phase1.detectionRange : bossDetectionRange;
                 float distance = Vector2.Distance(activeBossTransform.position, player.position);
                 if (distance > range)
                     return false;
