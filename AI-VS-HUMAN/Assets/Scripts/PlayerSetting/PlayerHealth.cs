@@ -23,7 +23,7 @@ public class PlayerHealth : MonoBehaviour
 
     [Header("체력 UI")]
     public bool createHealthUI = true;
-    public Vector2 healthUiPosition = new Vector2(-40f, 40f);
+    public Vector2 healthUiPosition = new Vector2(40f, -25f);
     public int healthFontSize = 32;
     public string fullHeart = "■";
     public string emptyHeart = "□";
@@ -269,15 +269,15 @@ public class PlayerHealth : MonoBehaviour
         textObj.transform.SetParent(canvasObj.transform, false);
 
         RectTransform rt = textObj.AddComponent<RectTransform>();
-        // 보스 체력바와 겹치지 않도록 플레이어 체력은 화면 오른쪽 아래에 하트로 표시합니다.
-        rt.anchorMin = new Vector2(1f, 0f);
-        rt.anchorMax = new Vector2(1f, 0f);
-        rt.pivot = new Vector2(1f, 0f);
-        rt.anchoredPosition = healthUiPosition;
+        // 보스 체력바와 겹치지 않도록 플레이어 체력은 화면 왼쪽 상단에 하트로 표시합니다.
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(Mathf.Abs(healthUiPosition.x), -Mathf.Abs(healthUiPosition.y));
         rt.sizeDelta = new Vector2(260f, 50f);
 
         healthText = textObj.AddComponent<Text>();
-        healthText.alignment = TextAnchor.MiddleRight;
+        healthText.alignment = TextAnchor.MiddleLeft;
         healthText.color = new Color(1f, 0.2f, 0.25f, 1f);
         healthText.fontSize = healthFontSize;
         healthText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");

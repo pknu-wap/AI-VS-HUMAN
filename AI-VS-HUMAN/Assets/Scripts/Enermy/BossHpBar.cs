@@ -10,7 +10,6 @@ using UnityEngine.UI;
 public class BossHpBar : MonoBehaviour
 {
     [Header("연결")]
-    public string bossName    = "BOSS";   // 표시할 보스 이름
     public float  maxHp       = 500f;     // 최대 HP (보스 스탯과 맞춰야 함)
 
     [Header("색상")]
@@ -72,17 +71,6 @@ public class BossHpBar : MonoBehaviour
         hpSlider.value        = maxHp;
         hpSlider.interactable = false;
 
-        // 보스 이름 텍스트
-        GameObject txtObj = new GameObject("BossName");
-        txtObj.transform.SetParent(canvasObj.transform, false);
-        RectTransform txtRt = txtObj.AddComponent<RectTransform>();
-        SetAnchorTop(txtRt, posY - barHeight - 2f, 24f);
-        var txt = txtObj.AddComponent<Text>();
-        txt.text      = bossName;
-        txt.alignment = TextAnchor.MiddleCenter;
-        txt.color     = Color.white;
-        txt.fontSize  = 18;
-        txt.font      = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
     }
 
     // ── 공개 함수 ──────────────────────────────

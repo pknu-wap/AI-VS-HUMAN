@@ -8546,7 +8546,7 @@ MonoBehaviour:
   invincibleDuration: 1
   blinkInterval: 0.1
   createHealthUI: 1
-  healthUiPosition: {x: -40, y: 40}
+  healthUiPosition: {x: 40, y: -25}
   healthFontSize: 32
   fullHeart: "\u25A0"
   emptyHeart: "\u25A1"

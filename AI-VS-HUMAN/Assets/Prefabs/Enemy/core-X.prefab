@@ -11,6 +11,13 @@ GameObject:
   - component: {fileID: 5718543447239090922}
   - component: {fileID: 1434759123410991423}
   - component: {fileID: 2062582714990080198}
+  - component: {fileID: 4302516276429002001}
+  - component: {fileID: 4302516276429002002}
+  - component: {fileID: 4302516276429002003}
+  - component: {fileID: 4302516276429002004}
+  - component: {fileID: 4302516276429001001}
+  - component: {fileID: 4302516276429001002}
+  - component: {fileID: 4302516276429001003}
   - component: {fileID: 1549743825}
   - component: {fileID: 1569403240}
   - component: {fileID: 5126869983694611596}
@@ -110,28 +117,122 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CoreXBoss
   maxHp: 500
   fadeDuration: 2
-  ghostPrefab: {fileID: 6609676312589147286, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
-  shadowPrefab: {fileID: 7300447643921118898, guid: 2ad090a2eae61cb4b80af369d851cfe8, type: 3}
-  summonInterval: 6
-  ghostSummonCount: 1
-  shadowSummonCount: 1
-  trapCount: 2
-  trapInterval: 10
-  trapDuration: 5
-  trapBindDuration: 2
-  trapWidth: 3
-  trapBoltCount: 4
-  trapColor: {r: 0.3, g: 0.7, b: 1, a: 1}
-  dashWindupTime: 0.8
-  dashMoveTime: 0.3
-  dashSpeed: 15
-  dashCooldown: 1.5
-  groggyDuration: 1
-  dashDamage: 1
+  introPhase: {fileID: 4302516276429002001}
+  phase1: {fileID: 4302516276429002002}
+  phaseTransition: {fileID: 4302516276429002003}
+  phase2: {fileID: 4302516276429002004}
+  dashPattern: {fileID: 4302516276429001001}
+  summonPattern: {fileID: 4302516276429001002}
+  electricTrapPattern: {fileID: 4302516276429001003}
+--- !u!114 &4302516276429002001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8042641778956177536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8bef365886b02e449a2eb119c44d1e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CoreXIntroPhase
+  startDelay: 1
+--- !u!114 &4302516276429002002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8042641778956177536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e10ecc3ded1a7cd438d7761b535298ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CoreXPhase1
+  wakeUpDuration: 1.5
+  flashInterval: 0.15
+--- !u!114 &4302516276429002003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8042641778956177536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca07cbb7da02f6740a7d1883aaf41e19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CoreXPhaseTransition
   phase2MaxHp: 1000
   phase2Color: {r: 0.3, g: 0, b: 0.5, a: 1}
-  phaseTransitionTime: 2
+  transitionTime: 2
   hpFillDuration: 2
+--- !u!114 &4302516276429002004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8042641778956177536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0470dcafc72add447bafc2790f104627, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CoreXPhase2
+--- !u!114 &4302516276429001001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8042641778956177536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7a6baf50b2d4e92a7fd46e3c1866d70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CoreXDashPattern
+  windupTime: 0.8
+  moveTime: 0.3
+  speed: 15
+  cooldown: 1.5
+  groggyDuration: 1
+  damage: 1
+--- !u!114 &4302516276429001002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8042641778956177536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a21757dbd9ed4bd4a83ac995255c830d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CoreXSummonPattern
+  ghostPrefab: {fileID: 6609676312589147286, guid: 1c9046ebda4ee164dbbad0f7cd2fdd84, type: 3}
+  shadowPrefab: {fileID: 7300447643921118898, guid: 2ad090a2eae61cb4b80af369d851cfe8, type: 3}
+  interval: 6
+  ghostCount: 1
+  shadowCount: 1
+--- !u!114 &4302516276429001003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8042641778956177536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8d69f2f1b8c4af2a97c6349c40cbe10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CoreXElectricTrapPattern
+  trapCount: 2
+  interval: 10
+  duration: 5
+  bindDuration: 2
+  width: 3
+  boltCount: 4
+  color: {r: 0.3, g: 0.7, b: 1, a: 1}
 --- !u!114 &1549743825
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -144,11 +245,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03f87a6730258ce45b74b070a1801c16, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossHpBar
-  bossName: CORE-X
   maxHp: 500
   hpBarColor: {r: 1, g: 0, b: 0, a: 1}
   bgColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.8}
-  posY: -40
+  posY: -425
   barHeight: 26
 --- !u!114 &1569403240
 MonoBehaviour:
