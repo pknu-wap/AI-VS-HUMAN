@@ -20,26 +20,17 @@ public class Stage1BossRoomController : MonoBehaviour
     public GiantDrone boss;
     private PlayerHealth playerHealth;
 
-    [Header("Boss Spawn")]
-    public GiantDrone bossPrefab;
-    public Transform bossSpawnPoint;
-    public Vector3 bossSpawnPosition = new Vector3(32f, 8f, 0f);
+    [Header("Boss Activation")]
     public bool hideSceneBossUntilRoomEntered = true;
     public bool spawnOnlyOnce = true;
     public bool resetOnPlayerDeath = true;
 
-    [Header("Phase 1 Temporary Wall")]
-    public bool createPhase1CeilingWall = true;
-    public bool useCameraTopForCeilingWall = false;
-    public Transform ceilingWallPoint;
-    public Vector3 ceilingWallPosition = new Vector3(32f, 9f, 0f);
-    public Vector2 ceilingWallSize = new Vector2(34f, 1f);
-    public float ceilingWallHeight = 1f;
-    public float ceilingWallWidthPadding = 2f;
-    public bool createPhase1EntranceWall = true;
-    public Transform entranceWallPoint;
-    public Vector3 entranceWallPosition = new Vector3(15.5f, 0f, 0f);
-    public Vector2 entranceWallSize = new Vector2(1f, 18f);
+    [Header("Boss Room Lock")]
+    public bool createBossLockWalls = true;
+    public float lockWallThickness = 1f;
+    public float lockWallPadding = 0f;
+    public string lockWallLayerName = "Ground";
+
 
     [Header("Camera")]
     public float scrollSpeed = 2f;
@@ -65,15 +56,16 @@ public class Stage1BossRoomController : MonoBehaviour
     private float phase2Timer;
     private bool bossSpawned;
     private bool bossCleared;
-    private bool bossWasInstantiated;
-    private GameObject phase1CeilingWall;
-    private GameObject phase1EntranceWall;
+    private bool hasBossStartPosition;
+    private Vector3 bossStartPosition;
+    private readonly List<GameObject> bossLockWalls = new List<GameObject>();
 
     private float CameraBottomY => cam.transform.position.y - cam.orthographicSize;
 
     private void Awake()
     {
         ResolveReferences();
+        CacheBossStartPosition();
         HideSceneBossUntilEnter();
     }
 
@@ -92,8 +84,7 @@ public class Stage1BossRoomController : MonoBehaviour
         PlayerHealth.PlayerDied -= HandlePlayerDied;
         PlayerHealth.PlayerRespawned -= HandlePlayerRespawned;
         UnsubscribeFromBoss();
-        RemovePhase1CeilingWall();
-        RemovePhase1EntranceWall();
+        RemoveBossLockWalls();
     }
 
     private void Reset()
@@ -109,7 +100,6 @@ public class Stage1BossRoomController : MonoBehaviour
             if (cam == null || bossRoom == null)
                 return;
         }
-
         if (phase == BossRoomPhase.Waiting)
         {
             CheckPlayerEnteredRoom();
@@ -148,9 +138,9 @@ public class Stage1BossRoomController : MonoBehaviour
         phase2Timer = 0f;
 
         SnapCameraToPhase1Position();
-        CreatePhase1CeilingWall();
-        CreatePhase1EntranceWall();
-        SpawnBossIfNeeded();
+        if (createBossLockWalls)
+            CreateBossLockWalls();
+        ActivateBossIfNeeded();
         SubscribeToBoss();
         CheckBossHalfHealth();
     }
@@ -190,7 +180,7 @@ public class Stage1BossRoomController : MonoBehaviour
         if (roomCameraController == null && Camera.main != null)
             roomCameraController = Camera.main.GetComponent<RoomCameraController>();
 
-        if (boss == null && bossPrefab == null && (!hideSceneBossUntilRoomEntered || phase != BossRoomPhase.Waiting))
+        if (boss == null && (!hideSceneBossUntilRoomEntered || phase != BossRoomPhase.Waiting))
             boss = FindFirstObjectByType<GiantDrone>();
 
         if (cam == null)
@@ -201,6 +191,17 @@ public class Stage1BossRoomController : MonoBehaviour
             if (cam == null)
                 cam = Camera.main;
         }
+
+        CacheBossStartPosition();
+    }
+
+    private void CacheBossStartPosition()
+    {
+        if (hasBossStartPosition || boss == null)
+            return;
+
+        bossStartPosition = boss.transform.position;
+        hasBossStartPosition = true;
     }
 
     private void HideSceneBossUntilEnter()
@@ -215,41 +216,30 @@ public class Stage1BossRoomController : MonoBehaviour
         }
     }
 
-    private void SpawnBossIfNeeded()
+    private void ActivateBossIfNeeded()
     {
         if (bossSpawned)
             return;
 
-        if (boss != null)
+        if (boss == null)
         {
-            boss.gameObject.SetActive(true);
-            boss.PrepareForBossRoomActivation(cam);
-            bossSpawned = true;
-            bossWasInstantiated = false;
+            Debug.LogWarning("Stage1BossRoomController has no GiantDrone assigned.", this);
             return;
         }
 
-        if (bossPrefab != null)
-        {
-            Vector3 spawnPosition = GetBossSpawnPosition();
-            boss = Instantiate(bossPrefab, spawnPosition, Quaternion.identity);
-            boss.name = bossPrefab.name;
-            boss.PrepareForBossRoomSpawn(spawnPosition, cam);
-            bossSpawned = true;
-            bossWasInstantiated = true;
-            return;
-        }
-
-        Debug.LogWarning("Stage1BossRoomController has no GiantDrone or bossPrefab to spawn.", this);
+        RestoreBossStartPosition();
+        boss.gameObject.SetActive(true);
+        boss.PrepareForBossRoomActivation(cam);
+        bossSpawned = true;
     }
 
-    private Vector3 GetBossSpawnPosition()
+    private void RestoreBossStartPosition()
     {
-        // Transform??吏?뺥븯硫?洹??꾩튂瑜??곗꽑 ?ъ슜?섍퀬, ?놁쑝硫??몄뒪?숉꽣???붾뱶 醫뚰몴瑜??ъ슜?⑸땲??
-        if (bossSpawnPoint != null)
-            return bossSpawnPoint.position;
+        if (!hasBossStartPosition || boss == null)
+            return;
 
-        return bossSpawnPosition;
+        boss.transform.position = bossStartPosition;
+        Physics2D.SyncTransforms();
     }
 
     private void SubscribeToBoss()
@@ -283,9 +273,11 @@ public class Stage1BossRoomController : MonoBehaviour
         UnsubscribeFromBoss();
         bossCleared = true;
         bossSpawned = true;
+        phase = BossRoomPhase.Waiting;
+        phase2Started = false;
+        phase2Timer = 0f;
 
-        RemovePhase1CeilingWall();
-        RemovePhase1EntranceWall();
+        RemoveBossLockWalls();
         ClearBossRoomEnemies();
 
         if (roomCameraController != null)
@@ -295,7 +287,6 @@ public class Stage1BossRoomController : MonoBehaviour
         }
 
         boss = null;
-        bossWasInstantiated = false;
     }
 
     private void MoveCameraToPhase1Position()
@@ -335,8 +326,6 @@ public class Stage1BossRoomController : MonoBehaviour
 
             if (phase2Timer <= 0f)
             {
-                RemovePhase1CeilingWall();
-                RemovePhase1EntranceWall();
                 phase = BossRoomPhase.Phase2;
             }
 
@@ -388,109 +377,62 @@ public class Stage1BossRoomController : MonoBehaviour
         boss.FollowBossRoomCamera(cam, phase2BossCameraYOffset, phase2BossFollowSpeed);
     }
 
-    private void CreatePhase1CeilingWall()
+    private void CreateBossLockWalls()
     {
-        if (!createPhase1CeilingWall || phase1CeilingWall != null || cam == null || bossRoom == null)
+        RemoveBossLockWalls();
+
+        if (bossRoom == null)
             return;
 
-        Vector3 wallPosition = GetPhase1WallPosition();
-        Vector2 wallSize = GetPhase1WallSize();
+        Bounds bounds = bossRoom.GetBounds();
+        float thickness = Mathf.Max(0.05f, lockWallThickness);
+        float padding = Mathf.Max(0f, lockWallPadding);
+        float width = bounds.size.x + padding * 2f + thickness * 2f;
+        float height = bounds.size.y + padding * 2f + thickness * 2f;
 
-        phase1CeilingWall = new GameObject("Phase 1 Temporary Ceiling Wall");
-        phase1CeilingWall.transform.position = wallPosition;
-        phase1CeilingWall.transform.SetParent(transform, true);
+        CreateBossLockWall("Stage 1 Boss Wall Top",
+            new Vector3(bounds.center.x, bounds.max.y + padding + thickness * 0.5f, 0f),
+            new Vector2(width, thickness));
 
-        int groundLayer = LayerMask.NameToLayer("Ground");
-        if (groundLayer >= 0)
-            phase1CeilingWall.layer = groundLayer;
+        CreateBossLockWall("Stage 1 Boss Wall Bottom",
+            new Vector3(bounds.center.x, bounds.min.y - padding - thickness * 0.5f, 0f),
+            new Vector2(width, thickness));
 
-        BoxCollider2D wallCollider = phase1CeilingWall.AddComponent<BoxCollider2D>();
-        wallCollider.size = wallSize;
-        wallCollider.isTrigger = false;
+        CreateBossLockWall("Stage 1 Boss Wall Left",
+            new Vector3(bounds.min.x - padding - thickness * 0.5f, bounds.center.y, 0f),
+            new Vector2(thickness, height));
+
+        CreateBossLockWall("Stage 1 Boss Wall Right",
+            new Vector3(bounds.max.x + padding + thickness * 0.5f, bounds.center.y, 0f),
+            new Vector2(thickness, height));
     }
 
-    private void CreatePhase1EntranceWall()
-    {
-        if (!createPhase1EntranceWall || phase1EntranceWall != null)
-            return;
-
-        // ?낃뎄踰쎌? ?뚮젅?댁뼱媛 蹂댁뒪猷?諛뽰쑝濡??섎룎?꾧???湲몃쭔 留됰룄濡??쇱そ 寃쎄퀎 諛붾줈 諛붽묑??諛곗튂?⑸땲??
-        Vector3 wallPosition = GetPhase1EntranceWallPosition();
-        Vector2 wallSize = GetPhase1EntranceWallSize();
-
-        phase1EntranceWall = CreatePhase1SolidWall("Phase 1 Temporary Entrance Wall", wallPosition, wallSize);
-    }
-
-    private GameObject CreatePhase1SolidWall(string wallName, Vector3 wallPosition, Vector2 wallSize)
+    private void CreateBossLockWall(string wallName, Vector3 wallPosition, Vector2 wallSize)
     {
         GameObject wall = new GameObject(wallName);
         wall.transform.position = wallPosition;
         wall.transform.SetParent(transform, true);
 
-        int groundLayer = LayerMask.NameToLayer("Ground");
-        if (groundLayer >= 0)
-            wall.layer = groundLayer;
+        int layer = LayerMask.NameToLayer(lockWallLayerName);
+        if (layer >= 0)
+            wall.layer = layer;
 
         BoxCollider2D wallCollider = wall.AddComponent<BoxCollider2D>();
         wallCollider.size = wallSize;
         wallCollider.isTrigger = false;
 
-        return wall;
+        bossLockWalls.Add(wall);
     }
 
-    private Vector3 GetPhase1WallPosition()
+    private void RemoveBossLockWalls()
     {
-        if (ceilingWallPoint != null)
-            return ceilingWallPoint.position;
+        foreach (GameObject wall in bossLockWalls)
+        {
+            if (wall != null)
+                Destroy(wall);
+        }
 
-        if (!useCameraTopForCeilingWall || cam == null)
-            return ceilingWallPosition;
-
-        float wallHeight = Mathf.Max(0.1f, ceilingWallHeight);
-        float cameraTopY = cam.transform.position.y + cam.orthographicSize;
-        return new Vector3(bossRoom.transform.position.x, cameraTopY + wallHeight * 0.5f, 0f);
-    }
-
-    private Vector2 GetPhase1WallSize()
-    {
-        if (!useCameraTopForCeilingWall)
-            return new Vector2(Mathf.Max(0.1f, ceilingWallSize.x), Mathf.Max(0.1f, ceilingWallSize.y));
-
-        float wallHeight = Mathf.Max(0.1f, ceilingWallHeight);
-        float cameraHalfWidth = cam != null ? cam.orthographicSize * cam.aspect : 16f;
-        float wallWidth = Mathf.Max(bossRoom.roomSize.x, cameraHalfWidth * 2f) + Mathf.Max(0f, ceilingWallWidthPadding);
-        return new Vector2(wallWidth, wallHeight);
-    }
-
-    private Vector3 GetPhase1EntranceWallPosition()
-    {
-        if (entranceWallPoint != null)
-            return entranceWallPoint.position;
-
-        return entranceWallPosition;
-    }
-
-    private Vector2 GetPhase1EntranceWallSize()
-    {
-        return new Vector2(Mathf.Max(0.1f, entranceWallSize.x), Mathf.Max(0.1f, entranceWallSize.y));
-    }
-
-    private void RemovePhase1CeilingWall()
-    {
-        if (phase1CeilingWall == null)
-            return;
-
-        Destroy(phase1CeilingWall);
-        phase1CeilingWall = null;
-    }
-
-    private void RemovePhase1EntranceWall()
-    {
-        if (phase1EntranceWall == null)
-            return;
-
-        Destroy(phase1EntranceWall);
-        phase1EntranceWall = null;
+        bossLockWalls.Clear();
     }
 
     private void CheckPlayerBelowCamera()
@@ -543,27 +485,17 @@ public class Stage1BossRoomController : MonoBehaviour
         bossSpawned = false;
         bossCleared = false;
 
-        RemovePhase1CeilingWall();
-        RemovePhase1EntranceWall();
+        RemoveBossLockWalls();
         UnsubscribeFromBoss();
 
         if (boss != null)
         {
-            if (bossWasInstantiated)
-            {
-                Destroy(boss.gameObject);
-                boss = null;
-            }
-            else
-            {
-                boss.ResetForBossRoomRetry();
+            RestoreBossStartPosition();
+            boss.ResetForBossRoomRetry();
 
-                if (hideSceneBossUntilRoomEntered)
-                    boss.gameObject.SetActive(false);
-            }
+            if (hideSceneBossUntilRoomEntered)
+                boss.gameObject.SetActive(false);
         }
-
-        bossWasInstantiated = false;
     }
 
     private void ClearBossRoomEnemies()
@@ -601,26 +533,6 @@ public class Stage1BossRoomController : MonoBehaviour
             return;
 
         Destroy(obj);
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(GetBossSpawnPosition(), 0.35f);
-
-        if (createPhase1CeilingWall && bossRoom != null)
-        {
-            Gizmos.color = Color.yellow;
-            Vector2 wallSize = GetPhase1WallSize();
-            Gizmos.DrawWireCube(GetPhase1WallPosition(), new Vector3(wallSize.x, wallSize.y, 0.1f));
-        }
-
-        if (createPhase1EntranceWall)
-        {
-            Gizmos.color = Color.magenta;
-            Vector2 wallSize = GetPhase1EntranceWallSize();
-            Gizmos.DrawWireCube(GetPhase1EntranceWallPosition(), new Vector3(wallSize.x, wallSize.y, 0.1f));
-        }
     }
 
     [ContextMenu("Test Enter Boss Room")]

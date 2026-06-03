@@ -77,6 +77,8 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
 
     [Header("HP 바")]
     public Color hpBarColor = new Color(0.9f, 0.1f, 0.1f);
+    public float hpBarPosY = -425f;
+    public float hpBarHeight = 26f;
 
     [Header("힐링 드론")]
     public GameObject healDronePrefab;
@@ -109,7 +111,6 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
     private Coroutine      hitFlashCoroutine;
     private Slider         hpSlider;
     private Canvas         bossCanvas;
-    private Canvas         clearCanvas;
     private Color          originalColor;
     private bool           hasOriginalColor;
     private readonly Collider2D[] wallOverlapHits = new Collider2D[8];
@@ -174,8 +175,6 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
                 player = playerObj.transform;
         }
 
-        DestroyClearCanvas();
-
         if (bossCanvas == null)
             CreateHpBarUI();
 
@@ -221,8 +220,6 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
                 player = playerObj.transform;
         }
 
-        DestroyClearCanvas();
-
         if (bossCanvas == null)
             CreateHpBarUI();
 
@@ -247,6 +244,9 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
         healDroneAliveCount = 0;
         hoverTime = 0f;
         swayTime = 0f;
+        swayBaseX = transform.position.x;
+        baseY = transform.position.y;
+        lastSafePosition = transform.position;
         petalBaseAngle = 0f;
 
         if (hitFlashCoroutine != null)
@@ -263,7 +263,6 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
 
         ConfigureRigidbody();
         DestroyBossCanvas();
-        DestroyClearCanvas();
     }
 
     public void TakeDamage(float damage)
@@ -310,7 +309,6 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
         if (bossCollider != null) bossCollider.enabled = false;
         DestroyBossCanvas();
         ClearExistingHealDrones();
-        ShowClearMessage();
 
         float elapsed = 0f;
         Color startColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
@@ -782,12 +780,11 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
         bgObj.transform.SetParent(canvasObj.transform, false);
         RectTransform bgRt = bgObj.AddComponent<RectTransform>();
         bgRt.anchorMin = new Vector2(0.1f, 1f); bgRt.anchorMax = new Vector2(0.9f, 1f);
-        bgRt.pivot = new Vector2(0.5f, 1f); bgRt.anchoredPosition = new Vector2(0f, -40f);
-        bgRt.sizeDelta = new Vector2(0f, 26f);
+        bgRt.pivot = new Vector2(0.5f, 1f); bgRt.anchoredPosition = new Vector2(0f, hpBarPosY);
+        bgRt.sizeDelta = new Vector2(0f, hpBarHeight);
         bgObj.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
 
         CreateSlider(canvasObj);
-        CreateLabel(canvasObj);
     }
 
     void CreateSlider(GameObject parent)
@@ -797,8 +794,8 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
         hpSlider = slObj.AddComponent<Slider>();
         RectTransform slRt = slObj.GetComponent<RectTransform>();
         slRt.anchorMin = new Vector2(0.1f, 1f); slRt.anchorMax = new Vector2(0.9f, 1f);
-        slRt.pivot = new Vector2(0.5f, 1f); slRt.anchoredPosition = new Vector2(0f, -40f);
-        slRt.sizeDelta = new Vector2(0f, 26f);
+        slRt.pivot = new Vector2(0.5f, 1f); slRt.anchoredPosition = new Vector2(0f, hpBarPosY);
+        slRt.sizeDelta = new Vector2(0f, hpBarHeight);
 
         GameObject fillArea = new GameObject("Fill Area");
         fillArea.transform.SetParent(slObj.transform, false);
@@ -851,42 +848,4 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
         hpSlider = null;
     }
 
-    private void ShowClearMessage()
-    {
-        if (clearCanvas != null)
-            return;
-
-        GameObject canvasObj = new GameObject("BossClearCanvas");
-        clearCanvas = canvasObj.AddComponent<Canvas>();
-        clearCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        clearCanvas.sortingOrder = 1001;
-        canvasObj.AddComponent<CanvasScaler>();
-        canvasObj.AddComponent<GraphicRaycaster>();
-
-        GameObject textObj = new GameObject("ClearText");
-        textObj.transform.SetParent(canvasObj.transform, false);
-
-        RectTransform rt = textObj.AddComponent<RectTransform>();
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-
-        Text text = textObj.AddComponent<Text>();
-        text.text = "CLEAR!";
-        text.alignment = TextAnchor.MiddleCenter;
-        text.color = new Color(1f, 0.9f, 0.25f, 1f);
-        text.fontSize = 72;
-        text.fontStyle = FontStyle.Bold;
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-    }
-
-    private void DestroyClearCanvas()
-    {
-        if (clearCanvas == null)
-            return;
-
-        Destroy(clearCanvas.gameObject);
-        clearCanvas = null;
-    }
 }
