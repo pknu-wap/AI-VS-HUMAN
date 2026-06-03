@@ -10,7 +10,7 @@ public partial class GiantDrone
         yield return new WaitForSeconds(2f);
         StartCoroutine(HealDroneLoop());
 
-        int[] patterns = { 0, 1 };
+        int[] patterns = { 0, 1, 2 };
         while (!isDead)
         {
             ShufflePatterns(patterns);
@@ -24,10 +24,18 @@ public partial class GiantDrone
                 }
                 else
                 {
-                    isDoingPetal = true;
-                    yield return StartCoroutine(FirePetalPattern());
-                    isDoingPetal = false;
-                    yield return new WaitForSeconds(petalLoopDelay);
+                    if (pattern == 1)
+                    {
+                        isDoingPetal = true;
+                        yield return StartCoroutine(FirePetalPattern());
+                        isDoingPetal = false;
+                        yield return new WaitForSeconds(petalLoopDelay);
+                    }
+                    else
+                    {
+                        FireDiagonalHomingMissiles();
+                        yield return new WaitForSeconds(homingMissileCooldown);
+                    }
                 }
             }
         }
@@ -143,6 +151,40 @@ public partial class GiantDrone
             }
             petalBaseAngle -= petalRotatePerShot;
             yield return new WaitForSeconds(petalFireInterval);
+        }
+    }
+
+    void FireDiagonalHomingMissiles()
+    {
+        GameObject prefab = homingMissilePrefab != null ? homingMissilePrefab : fanBulletPrefab;
+        if (prefab == null || player == null) return;
+
+        Vector2[] directions =
+        {
+            new Vector2(1f, 1f).normalized,
+            new Vector2(-1f, 1f).normalized,
+            new Vector2(1f, -1f).normalized,
+            new Vector2(-1f, -1f).normalized
+        };
+
+        foreach (Vector2 direction in directions)
+        {
+            Vector3 spawnPosition = transform.position + (Vector3)(direction * homingMissileSpawnOffset);
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            GameObject obj = Instantiate(prefab, spawnPosition, Quaternion.Euler(0f, 0f, angle));
+
+            HomingMissileBullet missile = obj.GetComponent<HomingMissileBullet>();
+            if (missile == null)
+                missile = obj.AddComponent<HomingMissileBullet>();
+
+            missile.Init(
+                direction,
+                player,
+                homingMissileDamage,
+                homingMissileSpeed,
+                homingMissileTurnSpeed,
+                homingMissileDuration,
+                homingMissileLifetime);
         }
     }
 

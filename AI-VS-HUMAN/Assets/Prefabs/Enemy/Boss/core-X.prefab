@@ -192,11 +192,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CoreXDashPattern
   windupTime: 0.8
-  moveTime: 0.3
-  speed: 15
+  speed: 18
   cooldown: 1.5
   groggyDuration: 1
   damage: 1
+  horizontalDashCount: 3
+  offscreenPadding: 2
+  horizontalDashHeightOffset: 0
+  dashPause: 0.25
+  hitRadius: 1
+  curveTowardPlayerStrength: 2.5
 --- !u!114 &4302516276429001002
 MonoBehaviour:
   m_ObjectHideFlags: 0

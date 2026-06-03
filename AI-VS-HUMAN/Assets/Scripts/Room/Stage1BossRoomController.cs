@@ -511,6 +511,9 @@ public class Stage1BossRoomController : MonoBehaviour
         UnsubscribeFromBoss();
         ResolveReferences();
 
+        if (roomCameraController != null)
+            roomCameraController.enabled = true;
+
         if (boss != null)
         {
             RestoreBossStartPosition();

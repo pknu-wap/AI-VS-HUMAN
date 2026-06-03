@@ -12,6 +12,11 @@ public class DashEnemy : EnemyBase
     public float windupTime = 0.25f;
     public float gravityScale = 1f;
 
+    [Header("Delayed Dash")]
+    [Range(0f, 1f)] public float delayedDashChance = 0.3f;
+    public float delayedDashWindupTime = 0.75f;
+    public float delayedDashSpeedMultiplier = 0.55f;
+
     [Header("Hit")]
     public int contactDamage = 1;
     public float bounceForce = 8f;
@@ -30,6 +35,7 @@ public class DashEnemy : EnemyBase
     private Vector2 dashStartPosition;
     private readonly RaycastHit2D[] wallHits = new RaycastHit2D[6];
     private float cooldownTimer;
+    private float currentDashSpeed;
     private bool isPreparing;
     private bool isDashing;
     private bool isBouncing;
@@ -68,7 +74,7 @@ public class DashEnemy : EnemyBase
         cooldownTimer += Time.deltaTime;
 
         if (cooldownTimer >= dashCooldown && IsPlayerInDetectionRange())
-            stateCoroutine = StartCoroutine(WindupAndDash());
+            stateCoroutine = StartCoroutine(WindupAndDash(Random.value < delayedDashChance));
     }
 
     private void FixedUpdate()
@@ -82,15 +88,16 @@ public class DashEnemy : EnemyBase
             return;
         }
 
-        dashRb.linearVelocity = new Vector2(dashDirection.x * dashSpeed, dashRb.linearVelocity.y);
+        dashRb.linearVelocity = new Vector2(dashDirection.x * currentDashSpeed, dashRb.linearVelocity.y);
     }
 
-    private IEnumerator WindupAndDash()
+    private IEnumerator WindupAndDash(bool useDelayedDash)
     {
         isPreparing = true;
-        SetBodyColor(Color.yellow);
+        SetBodyColor(useDelayedDash ? new Color(1f, 0.65f, 0.1f) : Color.yellow);
 
-        yield return new WaitForSeconds(Mathf.Max(0f, windupTime));
+        float prepareTime = useDelayedDash ? delayedDashWindupTime : windupTime;
+        yield return new WaitForSeconds(Mathf.Max(0f, prepareTime));
 
         isPreparing = false;
 
@@ -101,13 +108,15 @@ public class DashEnemy : EnemyBase
             yield break;
         }
 
-        BeginDash();
+        BeginDash(useDelayedDash);
         stateCoroutine = null;
     }
 
-    private void BeginDash()
+    private void BeginDash(bool useDelayedDash)
     {
         dashDirection = HorizontalDirectionToPlayer();
+        float speedMultiplier = useDelayedDash ? Mathf.Max(0.05f, delayedDashSpeedMultiplier) : 1f;
+        currentDashSpeed = dashSpeed * speedMultiplier;
 
         dashStartPosition = transform.position;
         cooldownTimer = 0f;
@@ -304,7 +313,7 @@ public class DashEnemy : EnemyBase
 
         Bounds bounds = dashCollider.bounds;
         Vector2 direction = dashDirection.x >= 0f ? Vector2.right : Vector2.left;
-        float castDistance = Mathf.Max(wallCheckPadding, Mathf.Abs(dashSpeed) * Time.fixedDeltaTime + wallCheckPadding);
+        float castDistance = Mathf.Max(wallCheckPadding, Mathf.Abs(currentDashSpeed) * Time.fixedDeltaTime + wallCheckPadding);
         int layerMask = obstacleLayer.value != 0 ? obstacleLayer.value : Physics2D.DefaultRaycastLayers;
 
         ContactFilter2D filter = new ContactFilter2D();

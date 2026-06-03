@@ -110,7 +110,10 @@ public class RoomDebugTeleporter : MonoBehaviour
         Physics2D.SyncTransforms();
 
         if (roomCameraController != null)
+        {
+            roomCameraController.enabled = true;
             roomCameraController.ResetToPlayerRoom();
+        }
     }
 
     private Vector3 GetTeleportPosition(Room targetRoom)

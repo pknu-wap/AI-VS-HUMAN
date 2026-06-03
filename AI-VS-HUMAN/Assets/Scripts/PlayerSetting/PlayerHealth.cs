@@ -65,6 +65,9 @@ public class PlayerHealth : MonoBehaviour
 
         if (rb != null)
             originalRigidbodySimulated = rb.simulated;
+
+        if (GetComponent<PlayerEnemyCollisionIgnorer>() == null)
+            gameObject.AddComponent<PlayerEnemyCollisionIgnorer>();
     }
 
     private void Start()

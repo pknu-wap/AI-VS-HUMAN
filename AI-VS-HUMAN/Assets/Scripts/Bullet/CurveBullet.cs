@@ -9,6 +9,7 @@ public class CurveBullet : MonoBehaviour
     public float lifetime = 2.5f;
 
     public LayerMask ignoreLayer;
+    public bool passThroughPlatforms = true;
 
     // Init이 호출되기 전에는 움직이거나 충돌 처리하지 않는다.
     private Vector2 direction;
@@ -51,6 +52,9 @@ public class CurveBullet : MonoBehaviour
         if (!isInit)         return;
         if (other.isTrigger) return;
 
+        if (passThroughPlatforms && IsPlatform(other))
+            return;
+
         // Enemy 레이어 통과
         if (ignoreLayer != 0 && ((1 << other.gameObject.layer) & ignoreLayer) != 0)
             return;
@@ -70,5 +74,12 @@ public class CurveBullet : MonoBehaviour
 
         // 벽/바닥
         Destroy(gameObject);
+    }
+
+    private bool IsPlatform(Collider2D other)
+    {
+        return other.gameObject.layer == LayerMask.NameToLayer("Platform")
+            || other.GetComponent<PlatformEffector2D>() != null
+            || other.GetComponentInParent<PlatformEffector2D>() != null;
     }
 }

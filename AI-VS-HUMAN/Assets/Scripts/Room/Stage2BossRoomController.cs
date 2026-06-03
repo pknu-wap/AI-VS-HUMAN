@@ -8,14 +8,18 @@ public class Stage2BossRoomController : MonoBehaviour
     public Transform player;
     public Room bossRoom;
     public RoomCameraController roomCameraController;
+    public CoreXBoss boss;
 
-    [Header("Boss Spawn")]
-    public CoreXBoss bossPrefab;
-    public Transform bossSpawnPoint;
-    public Vector3 bossSpawnPosition = new Vector3(32f, 4f, 0f);
+    [Header("Boss Activation")]
+    public bool hideSceneBossUntilRoomEntered = true;
     public bool enterWhenPlayerInsideRoom = true;
     public bool spawnOnlyOnce = true;
     public bool resetOnPlayerDeath = true;
+
+    [Header("Fallback Boss Spawn")]
+    public CoreXBoss bossPrefab;
+    public Transform bossSpawnPoint;
+    public Vector3 bossSpawnPosition = new Vector3(32f, 4f, 0f);
 
     [Header("Boss Room Lock")]
     public bool createBossLockWalls = true;
@@ -27,10 +31,13 @@ public class Stage2BossRoomController : MonoBehaviour
     public bool destroyEnemiesInsideRoomOnBossDeath = true;
     public List<GameObject> enemiesToDestroyOnBossDeath = new List<GameObject>();
 
-    private CoreXBoss spawnedBoss;
+    private CoreXBoss activeBoss;
     private PlayerHealth playerHealth;
     private bool bossSpawned;
     private bool bossCleared;
+    private bool activeBossWasInstantiated;
+    private bool hasBossStartPosition;
+    private Vector3 bossStartPosition;
     private readonly List<GameObject> bossLockWalls = new List<GameObject>();
 
     
@@ -42,6 +49,8 @@ public class Stage2BossRoomController : MonoBehaviour
     private void Awake()
     {
         ResolveReferences();
+        CacheBossStartPosition();
+        HideSceneBossUntilEnter();
     }
 
     private void OnEnable()
@@ -93,26 +102,38 @@ public class Stage2BossRoomController : MonoBehaviour
         if (bossSpawned && spawnOnlyOnce)
             return;
 
-        SpawnBossIfNeeded();
+        ActivateBossIfNeeded();
     }
 
-    private void SpawnBossIfNeeded()
+    private void ActivateBossIfNeeded()
     {
-        if (spawnedBoss != null)
+        if (activeBoss != null)
             return;
 
-        if (bossPrefab == null)
+        if (boss != null)
         {
-            Debug.LogWarning("Stage2BossRoomController has no CoreXBoss prefab to spawn.", this);
+            RestoreBossStartPosition();
+            activeBoss = boss;
+            activeBossWasInstantiated = false;
+            activeBoss.deactivateOnDeathInsteadOfDestroy = true;
+            activeBoss.gameObject.SetActive(true);
+        }
+        else if (bossPrefab != null)
+        {
+            activeBoss = Instantiate(bossPrefab, GetBossSpawnPosition(), Quaternion.identity);
+            activeBoss.name = bossPrefab.name;
+            activeBossWasInstantiated = true;
+        }
+        else
+        {
+            Debug.LogWarning("Stage2BossRoomController has no CoreXBoss assigned.", this);
             return;
         }
 
-        spawnedBoss = Instantiate(bossPrefab, GetBossSpawnPosition(), Quaternion.identity);
-        spawnedBoss.name = bossPrefab.name;
         bossSpawned = true;
         bossCleared = false;
 
-        ConfigureSpawnedBoss();
+        ConfigureActiveBoss();
 
         if (createBossLockWalls)
             CreateBossLockWalls();
@@ -126,19 +147,19 @@ public class Stage2BossRoomController : MonoBehaviour
         return bossSpawnPosition;
     }
 
-    private void ConfigureSpawnedBoss()
+    private void ConfigureActiveBoss()
     {
-        if (spawnedBoss == null)
+        if (activeBoss == null)
             return;
 
-        BossHpBar hpBar = spawnedBoss.GetComponent<BossHpBar>();
-        spawnedBoss.ConfigureForBossRoom(bossRoom, player, hpBar, phase1Servers, phase2Servers);
+        BossHpBar hpBar = activeBoss.GetComponent<BossHpBar>();
+        activeBoss.PrepareForBossRoomActivation(bossRoom, player, hpBar, phase1Servers, phase2Servers);
         SubscribeToBoss();
 
-        BossSafeZonePattern safeZonePattern = spawnedBoss.GetComponent<BossSafeZonePattern>();
+        BossSafeZonePattern safeZonePattern = activeBoss.GetComponent<BossSafeZonePattern>();
         if (safeZonePattern != null)
         {
-            safeZonePattern.bossTransform = spawnedBoss.transform;
+            safeZonePattern.bossTransform = activeBoss.transform;
             safeZonePattern.bossRoom = bossRoom;
             safeZonePattern.player = player;
 
@@ -152,17 +173,17 @@ public class Stage2BossRoomController : MonoBehaviour
 
     private void SubscribeToBoss()
     {
-        if (spawnedBoss == null)
+        if (activeBoss == null)
             return;
 
-        spawnedBoss.Died -= HandleBossDied;
-        spawnedBoss.Died += HandleBossDied;
+        activeBoss.Died -= HandleBossDied;
+        activeBoss.Died += HandleBossDied;
     }
 
     private void UnsubscribeFromBoss()
     {
-        if (spawnedBoss != null)
-            spawnedBoss.Died -= HandleBossDied;
+        if (activeBoss != null)
+            activeBoss.Died -= HandleBossDied;
     }
 
     private void ResolveReferences()
@@ -182,6 +203,50 @@ public class Stage2BossRoomController : MonoBehaviour
 
         if (roomCameraController == null && Camera.main != null)
             roomCameraController = Camera.main.GetComponent<RoomCameraController>();
+
+        if (boss == null)
+            boss = FindSceneBoss();
+
+        CacheBossStartPosition();
+    }
+
+    private CoreXBoss FindSceneBoss()
+    {
+        CoreXBoss[] bosses = FindObjectsByType<CoreXBoss>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        foreach (CoreXBoss candidate in bosses)
+        {
+            if (candidate != null && candidate.gameObject.scene.IsValid())
+                return candidate;
+        }
+
+        return null;
+    }
+
+    private void CacheBossStartPosition()
+    {
+        if (hasBossStartPosition || boss == null)
+            return;
+
+        bossStartPosition = boss.transform.position;
+        hasBossStartPosition = true;
+    }
+
+    private void RestoreBossStartPosition()
+    {
+        if (!hasBossStartPosition || boss == null)
+            return;
+
+        boss.transform.position = bossStartPosition;
+        Physics2D.SyncTransforms();
+    }
+
+    private void HideSceneBossUntilEnter()
+    {
+        if (!hideSceneBossUntilRoomEntered || boss == null || bossSpawned)
+            return;
+
+        if (boss.gameObject.scene.IsValid())
+            boss.gameObject.SetActive(false);
     }
 
     private void HandlePlayerDied(PlayerHealth deadPlayer)
@@ -197,10 +262,24 @@ public class Stage2BossRoomController : MonoBehaviour
 
         UnsubscribeFromBoss();
 
-        if (spawnedBoss != null)
-            Destroy(spawnedBoss.gameObject);
+        if (activeBoss != null)
+        {
+            if (activeBossWasInstantiated)
+            {
+                Destroy(activeBoss.gameObject);
+            }
+            else
+            {
+                RestoreBossStartPosition();
+                activeBoss.ResetForBossRoomRetry();
 
-        spawnedBoss = null;
+                if (hideSceneBossUntilRoomEntered)
+                    activeBoss.gameObject.SetActive(false);
+            }
+        }
+
+        activeBoss = null;
+        activeBossWasInstantiated = false;
         bossSpawned = false;
         RemoveBossLockWalls();
         ResetBossServersForRetry();
@@ -210,10 +289,23 @@ public class Stage2BossRoomController : MonoBehaviour
     {
         UnsubscribeFromBoss();
 
-        if (spawnedBoss != null)
-            Destroy(spawnedBoss.gameObject);
+        CoreXBoss targetBoss = activeBoss != null ? activeBoss : boss;
+        if (targetBoss != null)
+        {
+            if (activeBossWasInstantiated)
+                Destroy(targetBoss.gameObject);
+            else
+            {
+                RestoreBossStartPosition();
+                targetBoss.ResetForBossRoomRetry();
 
-        spawnedBoss = null;
+                if (hideSceneBossUntilRoomEntered)
+                    targetBoss.gameObject.SetActive(false);
+            }
+        }
+
+        activeBoss = null;
+        activeBossWasInstantiated = false;
         bossSpawned = false;
         bossCleared = false;
         RemoveBossLockWalls();
@@ -228,7 +320,8 @@ public class Stage2BossRoomController : MonoBehaviour
 
         ClearBossRoomEnemies();
         RemoveBossLockWalls();
-        spawnedBoss = null;
+        activeBoss = null;
+        activeBossWasInstantiated = false;
     }
 
     private void ClearBossRoomEnemies()
@@ -278,7 +371,10 @@ public class Stage2BossRoomController : MonoBehaviour
         if (obj == null)
             return;
 
-        if (spawnedBoss != null && obj == spawnedBoss.gameObject)
+        if (activeBoss != null && obj == activeBoss.gameObject)
+            return;
+
+        if (boss != null && obj == boss.gameObject)
             return;
 
         Destroy(obj);
@@ -363,6 +459,7 @@ public class Stage2BossRoomController : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(GetBossSpawnPosition(), 0.35f);
+        Vector3 position = boss != null ? boss.transform.position : GetBossSpawnPosition();
+        Gizmos.DrawWireSphere(position, 0.35f);
     }
 }

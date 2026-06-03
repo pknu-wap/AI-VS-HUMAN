@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 6401744938837028290}
   - component: {fileID: 9114819580749617649}
   - component: {fileID: 2477014298502648274}
-  - component: {fileID: 8782672133758667673}
   - component: {fileID: 4995014266369625275}
+  - component: {fileID: 6738327498166114754}
   m_Layer: 8
   m_Name: DronEnemy
   m_TagString: Enemy
@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 3.11548, y: -0.94471, z: 0}
-  m_LocalScale: {x: 2.4625, y: 1, z: 1}
+  m_LocalScale: {x: 0.9344642, y: 0.37947783, z: 0.37947783}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7270819553076695478}
@@ -122,8 +122,40 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!70 &8782672133758667673
-CapsuleCollider2D:
+--- !u!114 &4995014266369625275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2655023642777375728}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1390a2432253ccb4aa3773c8947b4beb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DroneEnemy
+  maxHp: 30
+  fadeDuration: 1.5
+  detectionRange: 8
+  attackRange: 6
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  droneBulletPrefab: {fileID: 1618581445746002526, guid: 7700b9fcffc0e3842929c3def0be8b6c, type: 3}
+  firePoint: {fileID: 7270819553076695478}
+  bulletDamage: 1
+  attackCooldown: 3
+  bulletCount: 7
+  spreadAngle: 80
+  bulletSpeed: 4
+  curveStrength: 2
+  curveLeft: 1
+  hoverHeight: 3
+  hoverSpeed: 1.5
+  hoverAmplitude: 0.4
+  hoverFrequency: 1.5
+--- !u!61 &6738327498166114754
+BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -157,40 +189,17 @@ CapsuleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1, y: 0.8828125}
+    newSize: {x: 1, y: 0.8828125}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
   m_Size: {x: 1, y: 0.8828125}
-  m_Direction: 0
---- !u!114 &4995014266369625275
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2655023642777375728}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1390a2432253ccb4aa3773c8947b4beb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DroneEnemy
-  maxHp: 30
-  fadeDuration: 1.5
-  detectionRange: 8
-  attackRange: 6
-  obstacleLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  droneBulletPrefab: {fileID: 1618581445746002526, guid: 7700b9fcffc0e3842929c3def0be8b6c, type: 3}
-  firePoint: {fileID: 7270819553076695478}
-  bulletDamage: 1
-  attackCooldown: 3
-  bulletCount: 7
-  spreadAngle: 80
-  bulletSpeed: 4
-  curveStrength: 2
-  curveLeft: 1
-  hoverHeight: 3
-  hoverSpeed: 1.5
-  hoverAmplitude: 0.4
-  hoverFrequency: 1.5
+  m_EdgeRadius: 0
 --- !u!1 &4011772929112121827
 GameObject:
   m_ObjectHideFlags: 0

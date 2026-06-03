@@ -22,13 +22,28 @@ public class SoldierEnemy : EnemyBase
     public float aimDelay       = 0.6f;   // 발사 전 경고 시간
     public bool  useLineOfSight = true;   // 장애물 감지 여부
 
+    [Header("예측샷")]
+    [Range(0f, 1f)] public float predictiveShotChance = 0.3f;
+    public float predictiveAimStrength = 0.65f;
+    public float maxPredictionTime = 0.8f;
+
+    [Header("이동")]
+    public float moveSpeed = 1.2f;
+    public float stopDistance = 3.5f;
+    public float gravityScale = 1f;
+
     private float attackTimer  = 0f;
     private bool  isAttacking  = false;
     private bool  playerInSight = false;
+    private Rigidbody2D soldierRigidbody;
+    private Rigidbody2D playerRigidbody;
 
     protected override void Start()
     {
         base.Start();
+        soldierRigidbody = GetComponent<Rigidbody2D>();
+        ConfigureRigidbody();
+        CachePlayerRigidbody();
         attackTimer = attackCooldown; // 시작하자마자 첫 발 가능
     }
 
@@ -50,6 +65,27 @@ public class SoldierEnemy : EnemyBase
             attackTimer = 0f;
             StartCoroutine(AimAndFire());
         }
+    }
+
+    private void FixedUpdate()
+    {
+        if (soldierRigidbody == null || isDead)
+            return;
+
+        if (!playerInSight || isAttacking || player == null)
+        {
+            soldierRigidbody.linearVelocity = new Vector2(0f, soldierRigidbody.linearVelocity.y);
+            return;
+        }
+
+        float distanceX = player.position.x - transform.position.x;
+        if (Mathf.Abs(distanceX) <= stopDistance)
+        {
+            soldierRigidbody.linearVelocity = new Vector2(0f, soldierRigidbody.linearVelocity.y);
+            return;
+        }
+
+        soldierRigidbody.linearVelocity = new Vector2(Mathf.Sign(distanceX) * moveSpeed, soldierRigidbody.linearVelocity.y);
     }
 
     // 거리 + 장애물 기반 시야 판정
@@ -95,7 +131,7 @@ public class SoldierEnemy : EnemyBase
     {
         if (bulletPrefab == null || firePoint == null) return;
 
-        Vector2 dir = DirectionToPlayer();
+        Vector2 dir = GetShotDirection();
 
         GameObject bulletObj = Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
         Bullet bullet = bulletObj.GetComponent<Bullet>();
@@ -106,11 +142,50 @@ public class SoldierEnemy : EnemyBase
         bulletObj.transform.rotation = Quaternion.Euler(0, 0, angle);
     }
 
+    private Vector2 GetShotDirection()
+    {
+        if (player == null)
+            return Vector2.right;
+
+        if (Random.value > predictiveShotChance)
+            return DirectionToPlayer();
+
+        CachePlayerRigidbody();
+
+        if (playerRigidbody == null)
+            return DirectionToPlayer();
+
+        Vector2 firePosition = firePoint != null ? (Vector2)firePoint.position : (Vector2)transform.position;
+        Vector2 playerPosition = player.position;
+        float distance = Vector2.Distance(firePosition, playerPosition);
+        float safeBulletSpeed = Mathf.Max(0.01f, bulletSpeed);
+        float predictionTime = Mathf.Min(distance / safeBulletSpeed, Mathf.Max(0f, maxPredictionTime));
+        Vector2 predictedPosition = playerPosition + playerRigidbody.linearVelocity * predictionTime * predictiveAimStrength;
+
+        return (predictedPosition - firePosition).normalized;
+    }
+
     // 플레이어 방향으로 스프라이트를 뒤집는다.
     void FacePlayer()
     {
         if (spriteRenderer == null || player == null) return;
         spriteRenderer.flipX = player.position.x < transform.position.x;
+    }
+
+    private void ConfigureRigidbody()
+    {
+        if (soldierRigidbody == null)
+            return;
+
+        soldierRigidbody.bodyType = RigidbodyType2D.Dynamic;
+        soldierRigidbody.gravityScale = gravityScale;
+        soldierRigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
+    }
+
+    private void CachePlayerRigidbody()
+    {
+        if (playerRigidbody == null && player != null)
+            playerRigidbody = player.GetComponent<Rigidbody2D>();
     }
 
     protected override void OnDrawGizmosSelected()

@@ -14,6 +14,7 @@ public class CoreXBoss : MonoBehaviour, IDamageable
     [Header("Health")]
     public float maxHp = 500f;
     public float fadeDuration = 2f;
+    public bool deactivateOnDeathInsteadOfDestroy;
 
     [Header("Phases")]
     [SerializeField] private CoreXIntroPhase introPhase;
@@ -42,6 +43,8 @@ public class CoreXBoss : MonoBehaviour, IDamageable
     private Rigidbody2D rb;
     private Coroutine hitFlashCoroutine;
     private Color originalColor;
+    private Coroutine battleFlowCoroutine;
+    private bool battleStatePrepared;
 
     public bool IsDead => isDead;
     public bool IsInvincible => isInvincible;
@@ -76,18 +79,102 @@ public class CoreXBoss : MonoBehaviour, IDamageable
 
     private void Start()
     {
-        currentHp = maxHp;
-        spriteRenderer = GetComponent<SpriteRenderer>();
-        rb = GetComponent<Rigidbody2D>();
-        originalColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
-
+        CacheComponents();
         ResolveComponents();
         SetupRigidbody();
 
         if (player == null)
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
 
-        StartCoroutine(BossBattleFlow());
+        if (!battleStatePrepared)
+            ResetBattleState();
+
+        StartBattleFlow();
+    }
+
+    public void PrepareForBossRoomActivation(Room room, Transform playerTransform, BossHpBar bar,
+                                             ServerNode[] p1Servers, ServerNode[] p2Servers)
+    {
+        ConfigureForBossRoom(room, playerTransform, bar, p1Servers, p2Servers);
+        CacheComponents();
+        ResolveComponents();
+        SetupRigidbody();
+        StopAllCoroutines();
+        battleFlowCoroutine = null;
+        StopPhase2Patterns();
+        ClearSpawnedMinions();
+        ResetBattleState();
+        battleStatePrepared = true;
+
+        if (isActiveAndEnabled)
+            StartBattleFlow();
+    }
+
+    public void ResetForBossRoomRetry()
+    {
+        StopAllCoroutines();
+        battleFlowCoroutine = null;
+        StopPhase2Patterns();
+        ClearSpawnedMinions();
+        ResetBattleState();
+    }
+
+    private void CacheComponents()
+    {
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        rb = GetComponent<Rigidbody2D>();
+        originalColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
+    }
+
+    private void ResetBattleState()
+    {
+        currentHp = maxHp;
+        isDead = false;
+        isInvincible = true;
+        serversAlive = 0;
+        serversDestroyed = 0;
+
+        if (hitFlashCoroutine != null)
+            hitFlashCoroutine = null;
+
+        if (spriteRenderer != null)
+            spriteRenderer.color = originalColor;
+
+        Collider2D col = GetComponent<Collider2D>();
+        if (col != null)
+            col.enabled = true;
+
+        if (rb != null)
+            rb.linearVelocity = Vector2.zero;
+
+        if (hpBar != null)
+        {
+            hpBar.SetMaxHp(maxHp);
+            hpBar.Hide();
+        }
+    }
+
+    private void StartBattleFlow()
+    {
+        if (battleFlowCoroutine != null)
+            return;
+
+        battleFlowCoroutine = StartCoroutine(BattleFlowRoutine());
+    }
+
+    private void StopBattleFlow()
+    {
+        if (battleFlowCoroutine == null)
+            return;
+
+        StopCoroutine(battleFlowCoroutine);
+        battleFlowCoroutine = null;
+    }
+
+    private IEnumerator BattleFlowRoutine()
+    {
+        yield return StartCoroutine(BossBattleFlow());
+        battleFlowCoroutine = null;
     }
 
     private void ResolveComponents()
@@ -263,6 +350,7 @@ public class CoreXBoss : MonoBehaviour, IDamageable
         isDead = true;
         Died?.Invoke();
         StopAllCoroutines();
+        battleFlowCoroutine = null;
         StopPhase2Patterns();
         ClearSpawnedMinions();
 
@@ -285,6 +373,12 @@ public class CoreXBoss : MonoBehaviour, IDamageable
             }
 
             yield return null;
+        }
+
+        if (deactivateOnDeathInsteadOfDestroy)
+        {
+            gameObject.SetActive(false);
+            yield break;
         }
 
         Destroy(gameObject);

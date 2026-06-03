@@ -75,6 +75,16 @@ public partial class GiantDrone : MonoBehaviour, IDamageable
     public float petalLoopDelay = 3f;
     public float petalMoveSpeedMultiplier = 0.45f;
 
+    [Header("유도탄 패턴")]
+    public GameObject homingMissilePrefab;
+    public float homingMissileDamage = 1f;
+    public float homingMissileSpeed = 5f;
+    public float homingMissileTurnSpeed = 180f;
+    public float homingMissileDuration = 1.5f;
+    public float homingMissileLifetime = 4f;
+    public float homingMissileSpawnOffset = 1.2f;
+    public float homingMissileCooldown = 3f;
+
     [Header("HP 바")]
     public Color hpBarColor = new Color(0.9f, 0.1f, 0.1f);
     public float hpBarPosY = -425f;

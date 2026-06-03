@@ -9,6 +9,7 @@ public class PetalBullet : MonoBehaviour
     public float hitRadius = 0.2f;
     public LayerMask playerMask;
     public LayerMask groundMask;
+    public bool passThroughPlatforms = true;
 
     [Header("이동")]
     public float maxDistance = 15.5f;
@@ -126,7 +127,7 @@ public class PetalBullet : MonoBehaviour
 
         // 벽 / 바닥 충돌 검사
         Collider2D groundHit = Physics2D.OverlapCircle(position, hitRadius, groundMask);
-        if (groundHit != null)
+        if (groundHit != null && !ShouldPassThrough(groundHit))
             Destroy(gameObject);
     }
 
@@ -149,8 +150,20 @@ public class PetalBullet : MonoBehaviour
         }
 
         // 벽 / 바닥에 닿으면 삭제
-        if (((1 << other.gameObject.layer) & groundMask) != 0)
+        if (((1 << other.gameObject.layer) & groundMask) != 0 && !ShouldPassThrough(other))
             Destroy(gameObject);
+    }
+
+    private bool ShouldPassThrough(Collider2D other)
+    {
+        return passThroughPlatforms && IsPlatform(other);
+    }
+
+    private bool IsPlatform(Collider2D other)
+    {
+        return other.gameObject.layer == LayerMask.NameToLayer("Platform")
+            || other.GetComponent<PlatformEffector2D>() != null
+            || other.GetComponentInParent<PlatformEffector2D>() != null;
     }
 
     // ── 보조 함수 ─────────────────────────────
