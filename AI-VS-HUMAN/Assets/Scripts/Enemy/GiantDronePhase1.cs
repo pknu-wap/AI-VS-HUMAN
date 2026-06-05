@@ -4,21 +4,23 @@ using UnityEngine;
 [RequireComponent(typeof(GiantDrone))]
 public class GiantDronePhase1 : MonoBehaviour
 {
-    private const float DefaultHoverAmplitude = 0.4f;
-    private const float DefaultHoverFrequency = 1.2f;
-    private const float DefaultSwaySpeed = 1.5f;
-    private const float DefaultSwayAmplitude = 3f;
-
     [Header("감지")]
     public float detectionRange = 25f;
 
     [Header("이동")]
     public float moveSpeed = 2.5f;
+    public float hoverAmplitude = 0.4f;
+    public float hoverFrequency = 1.2f;
+    public float swaySpeed = 1.5f;
+    public float swayAmplitude = 3f;
+
+    [Header("공격 루프")]
+    public float initialAttackDelay = 2f;
 
     private GiantDrone boss;
     private Coroutine attackLoopCoroutine;
-    internal float HoverAmplitude => DefaultHoverAmplitude;
-    internal float HoverFrequency => DefaultHoverFrequency;
+    internal float HoverAmplitude => hoverAmplitude;
+    internal float HoverFrequency => hoverFrequency;
 
     private void Awake()
     {
@@ -78,7 +80,7 @@ public class GiantDronePhase1 : MonoBehaviour
 
     private IEnumerator AttackLoop()
     {
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(initialAttackDelay);
 
         int[] patterns = { 0, 1, 2 };
         while (!boss.isDead)
@@ -134,8 +136,8 @@ public class GiantDronePhase1 : MonoBehaviour
             boss.player.position.x,
             moveSpeed * 0.5f * Time.deltaTime);
 
-        float bob = Mathf.Sin(boss.hoverTime * DefaultHoverFrequency) * DefaultHoverAmplitude;
-        float targetX = boss.swayBaseX + Mathf.Sin(boss.swayTime * DefaultSwaySpeed) * DefaultSwayAmplitude;
+        float bob = Mathf.Sin(boss.hoverTime * hoverFrequency) * hoverAmplitude;
+        float targetX = boss.swayBaseX + Mathf.Sin(boss.swayTime * swaySpeed) * swayAmplitude;
         float targetY = boss.baseY + bob;
         float currentMoveSpeed = boss.isDoingPetal
             ? moveSpeed * (boss.petalPattern != null ? boss.petalPattern.MoveSpeedMultiplier : 1f)

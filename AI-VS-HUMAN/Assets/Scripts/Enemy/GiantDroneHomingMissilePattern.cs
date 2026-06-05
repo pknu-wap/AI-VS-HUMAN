@@ -3,15 +3,14 @@ using UnityEngine;
 [RequireComponent(typeof(GiantDrone))]
 public class GiantDroneHomingMissilePattern : MonoBehaviour
 {
-    private const float TurnSpeed = 180f;
-    private const float HomingDuration = 1.5f;
-    private const float Lifetime = 4f;
-    private const float SpawnOffset = 1.2f;
-
     [Header("유도탄")]
     public GameObject homingMissilePrefab;
     public float damage = 1f;
     public float speed = 5f;
+    public float turnSpeed = 180f;
+    public float homingDuration = 1.5f;
+    public float lifetime = 4f;
+    public float spawnOffset = 1.2f;
     public float cooldown = 3f;
 
     public void Fire(GiantDrone boss)
@@ -36,7 +35,7 @@ public class GiantDroneHomingMissilePattern : MonoBehaviour
 
         foreach (Vector2 direction in directions)
         {
-            Vector3 spawnPosition = transform.position + (Vector3)(direction * SpawnOffset);
+            Vector3 spawnPosition = transform.position + (Vector3)(direction * spawnOffset);
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             GameObject obj = Instantiate(prefab, spawnPosition, Quaternion.Euler(0f, 0f, angle));
 
@@ -44,7 +43,7 @@ public class GiantDroneHomingMissilePattern : MonoBehaviour
             if (missile == null)
                 missile = obj.AddComponent<HomingMissileBullet>();
 
-            missile.Init(direction, boss.player, damage, speed, TurnSpeed, HomingDuration, Lifetime);
+            missile.Init(direction, boss.player, damage, speed, turnSpeed, homingDuration, lifetime);
         }
     }
 

@@ -18,21 +18,6 @@ using Action = System.Action;
 [RequireComponent(typeof(GiantDroneHealDronePattern))]
 public class GiantDrone : MonoBehaviour, IDamageable
 {
-    private const float DefaultFadeDuration = 2f;
-    private const float DefaultDetectionRange = 25f;
-    private const float DefaultHoverAmplitude = 0.4f;
-    private const float DefaultHoverFrequency = 1.2f;
-    private const float DefaultWallAvoidDistance = 1.8f;
-    private const float DefaultWallAvoidSpeed = 5f;
-    private const float DefaultWallCheckRadius = 0.45f;
-    private const float DefaultWallStopPadding = 0.2f;
-    private const float DefaultWallUnstuckPadding = 0.05f;
-    private const float DefaultWallSafeStepDistance = 0.2f;
-    private const int DefaultWallResolveIterations = 4;
-    private const float DefaultCameraEdgePadding = 0.5f;
-    private const float DefaultHpBarHeight = 26f;
-    private static readonly Color DefaultHpBarColor = new Color(0.9f, 0.1f, 0.1f);
-
     [Header("체력")]
     public float maxHp = 600f;
     internal float currentHp;
@@ -44,9 +29,25 @@ public class GiantDrone : MonoBehaviour, IDamageable
 
     [Header("체력바")]
     public float hpBarPosY = -425f;
+    public float hpBarHeight = 26f;
+    public Color hpBarColor = new Color(0.9f, 0.1f, 0.1f);
 
     [Header("사망")]
+    public float fadeDuration = 2f;
     public bool deactivateOnDeathInsteadOfDestroy;
+
+    [Header("벽 회피")]
+    public float wallAvoidDistance = 1.8f;
+    public float wallAvoidSpeed = 5f;
+    public float wallCheckRadius = 0.45f;
+    public float wallStopPadding = 0.2f;
+    public float wallUnstuckPadding = 0.05f;
+    public float wallSafeStepDistance = 0.2f;
+    public int wallResolveIterations = 4;
+
+    [Header("카메라 제한")]
+    public bool keepInsideCameraView = false;
+    public float cameraEdgePadding = 0.5f;
 
     internal int   healDroneAliveCount = 0;
 
@@ -83,15 +84,15 @@ public class GiantDrone : MonoBehaviour, IDamageable
     private readonly RaycastHit2D[] wallCastHits = new RaycastHit2D[8];
     internal Vector3        lastSafePosition;
 
-    private float WallAvoidDistance => DefaultWallAvoidDistance;
-    private float WallAvoidSpeed => DefaultWallAvoidSpeed;
-    private float WallCheckRadius => DefaultWallCheckRadius;
-    private float WallStopPadding => DefaultWallStopPadding;
-    private float WallUnstuckPadding => DefaultWallUnstuckPadding;
-    private float WallSafeStepDistance => DefaultWallSafeStepDistance;
-    private int WallResolveIterations => DefaultWallResolveIterations;
-    private bool KeepInsideCameraView => false;
-    private float CameraEdgePadding => DefaultCameraEdgePadding;
+    private float WallAvoidDistance => wallAvoidDistance;
+    private float WallAvoidSpeed => wallAvoidSpeed;
+    private float WallCheckRadius => wallCheckRadius;
+    private float WallStopPadding => wallStopPadding;
+    private float WallUnstuckPadding => wallUnstuckPadding;
+    private float WallSafeStepDistance => wallSafeStepDistance;
+    private int WallResolveIterations => wallResolveIterations;
+    private bool KeepInsideCameraView => keepInsideCameraView;
+    private float CameraEdgePadding => cameraEdgePadding;
 
     void Start()
     {
@@ -119,12 +120,16 @@ public class GiantDrone : MonoBehaviour, IDamageable
 
     private void Update()
     {
+        KeepUpright();
+
         if (phase1 != null)
             phase1.Tick(this);
     }
 
     private void LateUpdate()
     {
+        KeepUpright();
+
         if (phase1 != null)
             phase1.LateTick(this);
     }
@@ -310,10 +315,10 @@ public class GiantDrone : MonoBehaviour, IDamageable
 
         float elapsed = 0f;
         Color startColor = spriteRenderer != null ? spriteRenderer.color : Color.white;
-        while (elapsed < DefaultFadeDuration)
+        while (elapsed < fadeDuration)
         {
             elapsed += Time.deltaTime;
-            float alpha = Mathf.Lerp(1f, 0f, elapsed / DefaultFadeDuration);
+            float alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
             if (spriteRenderer != null)
                 spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
             yield return null;
@@ -346,7 +351,7 @@ public class GiantDrone : MonoBehaviour, IDamageable
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        float range = phase1 != null ? phase1.detectionRange : DefaultDetectionRange;
+        float range = phase1 != null ? phase1.detectionRange : 25f;
         Gizmos.DrawWireSphere(transform.position, range);
     }
 
@@ -363,8 +368,8 @@ public class GiantDrone : MonoBehaviour, IDamageable
         if (isDoingUDash)
             return;
 
-        float currentHoverFrequency = phase1 != null ? phase1.HoverFrequency : DefaultHoverFrequency;
-        float currentHoverAmplitude = phase1 != null ? phase1.HoverAmplitude : DefaultHoverAmplitude;
+        float currentHoverFrequency = phase1 != null ? phase1.HoverFrequency : 1.2f;
+        float currentHoverAmplitude = phase1 != null ? phase1.HoverAmplitude : 0.4f;
         float targetY = baseY + Mathf.Sin(hoverTime * currentHoverFrequency) * currentHoverAmplitude;
         float nextY = Mathf.MoveTowards(transform.position.y, targetY, Mathf.Max(0f, followSpeed) * Time.deltaTime);
         Vector3 nextPosition = new Vector3(transform.position.x, nextY, transform.position.z);
@@ -442,6 +447,14 @@ public class GiantDrone : MonoBehaviour, IDamageable
         rb.gravityScale = 0f;
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+    }
+
+    private void KeepUpright()
+    {
+        if (rb != null)
+            rb.angularVelocity = 0f;
+
+        transform.rotation = Quaternion.identity;
     }
 
     private void MoveVisualCenterTo(Vector3 centerPosition)
@@ -831,7 +844,7 @@ public class GiantDrone : MonoBehaviour, IDamageable
         RectTransform bgRt = bgObj.AddComponent<RectTransform>();
         bgRt.anchorMin = new Vector2(0.1f, 1f); bgRt.anchorMax = new Vector2(0.9f, 1f);
         bgRt.pivot = new Vector2(0.5f, 1f); bgRt.anchoredPosition = new Vector2(0f, hpBarPosY);
-        bgRt.sizeDelta = new Vector2(0f, DefaultHpBarHeight);
+        bgRt.sizeDelta = new Vector2(0f, hpBarHeight);
         bgObj.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
 
         CreateSlider(canvasObj);
@@ -845,7 +858,7 @@ public class GiantDrone : MonoBehaviour, IDamageable
         RectTransform slRt = slObj.GetComponent<RectTransform>();
         slRt.anchorMin = new Vector2(0.1f, 1f); slRt.anchorMax = new Vector2(0.9f, 1f);
         slRt.pivot = new Vector2(0.5f, 1f); slRt.anchoredPosition = new Vector2(0f, hpBarPosY);
-        slRt.sizeDelta = new Vector2(0f, DefaultHpBarHeight);
+        slRt.sizeDelta = new Vector2(0f, hpBarHeight);
 
         GameObject fillArea = new GameObject("Fill Area");
         fillArea.transform.SetParent(slObj.transform, false);
@@ -854,7 +867,7 @@ public class GiantDrone : MonoBehaviour, IDamageable
         GameObject fill = new GameObject("Fill");
         fill.transform.SetParent(fillArea.transform, false);
         SetFullRect(fill.AddComponent<RectTransform>());
-        fill.AddComponent<Image>().color = DefaultHpBarColor;
+        fill.AddComponent<Image>().color = hpBarColor;
 
         hpSlider.fillRect = fill.GetComponent<RectTransform>();
         hpSlider.minValue = 0f; hpSlider.maxValue = maxHp;

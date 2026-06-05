@@ -10,6 +10,13 @@ public class CoreXSummonPattern : MonoBehaviour
     public float interval = 8f;
     public int ghostCount = 1;
     public int shadowCount = 1;
+    public float roomMargin = 1.5f;
+    public float ghostMinSpeed = 0.8f;
+    public float ghostMaxSpeed = 1.4f;
+    public float shadowSpawnOffsetX = 3f;
+    public float shadowRecordDelay = 3f;
+    public float shadowRecordDelayStep = 3f;
+    public float shadowSummonDelay = 2f;
 
     private CoreXBoss boss;
     private Coroutine loopCoroutine;
@@ -59,7 +66,7 @@ public class CoreXSummonPattern : MonoBehaviour
             return;
 
         Bounds bounds = boss.BossRoom.GetBounds();
-        float margin = 1.5f;
+        float margin = Mathf.Max(0f, roomMargin);
         float minX = bounds.min.x + margin;
         float maxX = bounds.max.x - margin;
         float minY = bounds.min.y + margin;
@@ -76,7 +83,7 @@ public class CoreXSummonPattern : MonoBehaviour
 
             GhostEnemy ghost = obj.GetComponent<GhostEnemy>();
             if (ghost != null)
-                ghost.moveSpeed = Random.Range(0.8f, 1.4f);
+                ghost.moveSpeed = Random.Range(ghostMinSpeed, ghostMaxSpeed);
         }
 
         StartCoroutine(SummonShadowsSequential());
@@ -89,16 +96,16 @@ public class CoreXSummonPattern : MonoBehaviour
             if (boss == null || boss.IsDead || shadowPrefab == null || boss.Player == null)
                 yield break;
 
-            float dirX = i % 2 == 0 ? 3f : -3f;
+            float dirX = i % 2 == 0 ? shadowSpawnOffsetX : -shadowSpawnOffsetX;
             Vector3 spawnPos = boss.Player.position + new Vector3(dirX, 0f, 0f);
             GameObject obj = Instantiate(shadowPrefab, spawnPos, Quaternion.identity);
             spawnedMinions.Add(obj);
 
             ShadowEnemy shadow = obj.GetComponent<ShadowEnemy>();
             if (shadow != null)
-                shadow.recordDelay = 3f + i * 3f;
+                shadow.recordDelay = shadowRecordDelay + i * shadowRecordDelayStep;
 
-            yield return new WaitForSeconds(2f);
+            yield return new WaitForSeconds(shadowSummonDelay);
         }
     }
 }

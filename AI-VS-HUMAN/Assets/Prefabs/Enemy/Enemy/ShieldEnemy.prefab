@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 6596932916886513284}
   - component: {fileID: 2354074876591714124}
-  - component: {fileID: 741232136590744440}
   - component: {fileID: 1088869666986212945}
   - component: {fileID: 3095263174140647624}
+  - component: {fileID: 4876317042673578834}
   m_Layer: 8
   m_Name: ShieldEnemy
   m_TagString: Enemy
@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 4.75, y: -2.37, z: 0}
-  m_LocalScale: {x: 1.0442, y: 2.5713425, z: 1.0442}
+  m_LocalScale: {x: 0.39625072, y: 0.97576743, z: 0.39625072}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6706278038650792234}
@@ -95,43 +95,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!70 &741232136590744440
-CapsuleCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6650214256465391681}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_Size: {x: 0.99999994, y: 1}
-  m_Direction: 0
 --- !u!50 &1088869666986212945
 Rigidbody2D:
   serializedVersion: 5
@@ -171,9 +134,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c1fbee5603ab047a17fb7af0577faf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShieldEnemy
-  maxHp: 30
-  detectionRange: 8
-  attackRange: 6
+  maxHp: 40
+  detectionRange: 16
+  attackRange: 12
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 0
@@ -185,6 +148,52 @@ MonoBehaviour:
   bulletSpeed: 5
   bulletDamage: 1
   attackCooldown: 3
+--- !u!61 &4876317042673578834
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6650214256465391681}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1, y: 1}
+    newSize: {x: 1, y: 1}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 1, y: 1}
+  m_EdgeRadius: 0
 --- !u!1 &8212656557217813624
 GameObject:
   m_ObjectHideFlags: 0
@@ -211,7 +220,7 @@ Transform:
   m_GameObject: {fileID: 8212656557217813624}
   serializedVersion: 2
   m_LocalRotation: {x: -0.017899834, y: 0.34157795, z: -0.0012886734, w: 0.9396821}
-  m_LocalPosition: {x: -0.75, y: 0.124, z: -0.21}
+  m_LocalPosition: {x: -0.51, y: 0.169, z: -0.42}
   m_LocalScale: {x: 1.4890712, y: 1.4890712, z: 1.4890712}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -267,7 +276,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -712631045867808456, guid: b670ab75dde984907b8570040daa08c5, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.7987421, g: 0.69073606, b: 0.69073606, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0

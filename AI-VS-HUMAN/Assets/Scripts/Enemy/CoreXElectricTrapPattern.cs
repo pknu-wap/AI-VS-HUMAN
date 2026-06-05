@@ -4,15 +4,14 @@ using UnityEngine;
 
 public class CoreXElectricTrapPattern : MonoBehaviour
 {
-    private const int BoltCount = 4;
-    private static readonly Color TrapColor = new Color(0.3f, 0.7f, 1f, 1f);
-
     [Header("전기 함정")]
     public int trapCount = 2;
     public float interval = 10f;
     public float duration = 5f;
     public float bindDuration = 2f;
     public float width = 3f;
+    public int boltCount = 4;
+    public Color trapColor = new Color(0.3f, 0.7f, 1f, 1f);
 
     private CoreXBoss boss;
     private Coroutine loopCoroutine;
@@ -86,7 +85,7 @@ public class CoreXElectricTrapPattern : MonoBehaviour
         glowObj.transform.localScale = new Vector3(width, 0.3f, 1f);
 
         List<LineRenderer> bolts = new List<LineRenderer>();
-        for (int i = 0; i < BoltCount; i++)
+        for (int i = 0; i < boltCount; i++)
         {
             GameObject boltObj = new GameObject($"Bolt_{i}");
             boltObj.transform.SetParent(trap.transform);
@@ -97,8 +96,8 @@ public class CoreXElectricTrapPattern : MonoBehaviour
                 shader = Shader.Find("Sprites/Default");
 
             lr.material = new Material(shader);
-            lr.startColor = TrapColor;
-            lr.endColor = new Color(TrapColor.r, TrapColor.g, TrapColor.b, 0f);
+            lr.startColor = trapColor;
+            lr.endColor = new Color(trapColor.r, trapColor.g, trapColor.b, 0f);
             lr.startWidth = 0.04f;
             lr.endWidth = 0.01f;
             lr.positionCount = 8;
@@ -149,7 +148,7 @@ public class CoreXElectricTrapPattern : MonoBehaviour
             foreach (LineRenderer bolt in bolts)
             {
                 if (bolt != null)
-                    bolt.startColor = new Color(TrapColor.r, TrapColor.g, TrapColor.b, alpha);
+                    bolt.startColor = new Color(trapColor.r, trapColor.g, trapColor.b, alpha);
             }
 
             if (glow != null)

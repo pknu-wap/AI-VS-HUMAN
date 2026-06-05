@@ -3,20 +3,19 @@ using UnityEngine;
 
 public class CoreXDashPattern : MonoBehaviour
 {
-    private const float GroggyDuration = 1f;
-    private const float OffscreenPadding = 2f;
-    private const float HorizontalDashHeightOffset = 0f;
-    private const float DashPause = 0.25f;
-    private const float HitRadius = 1f;
-
     [Header("돌진")]
     public float windupTime = 0.8f;
     public float speed = 18f;
     public float cooldown = 1.5f;
+    public float groggyDuration = 1f;
     public int damage = 1;
+    public float hitRadius = 1f;
 
     [Header("화면 돌진")]
     public int horizontalDashCount = 3;
+    public float offscreenPadding = 2f;
+    public float horizontalDashHeightOffset = 0f;
+    public float dashPause = 0.25f;
     public float curveTowardPlayerStrength = 2.5f;
 
     public float Cooldown => cooldown;
@@ -60,7 +59,7 @@ public class CoreXDashPattern : MonoBehaviour
             boss.transform.position = startPosition;
             Physics2D.SyncTransforms();
 
-            yield return new WaitForSeconds(Mathf.Max(0f, DashPause));
+            yield return new WaitForSeconds(Mathf.Max(0f, dashPause));
             yield return StartCoroutine(MoveBossAlongDash(boss, endPosition, true, dashBounds));
         }
 
@@ -73,7 +72,7 @@ public class CoreXDashPattern : MonoBehaviour
         if (spriteRenderer != null)
             spriteRenderer.color = Color.gray;
 
-            yield return new WaitForSeconds(GroggyDuration);
+            yield return new WaitForSeconds(groggyDuration);
 
         if (spriteRenderer != null)
             spriteRenderer.color = boss.OriginalColor;
@@ -89,9 +88,9 @@ public class CoreXDashPattern : MonoBehaviour
             if (curveTowardPlayer && boss.Player != null)
             {
                 float wantedY = Mathf.Clamp(
-                    boss.Player.position.y + HorizontalDashHeightOffset,
-                    dashBounds.min.y + OffscreenPadding,
-                    dashBounds.max.y - OffscreenPadding);
+                    boss.Player.position.y + horizontalDashHeightOffset,
+                    dashBounds.min.y + offscreenPadding,
+                    dashBounds.max.y - offscreenPadding);
 
                 targetPosition.y = Mathf.MoveTowards(
                     targetPosition.y,
@@ -108,7 +107,7 @@ public class CoreXDashPattern : MonoBehaviour
 
             if (!hitPlayer)
             {
-                Collider2D hit = Physics2D.OverlapCircle(boss.transform.position, HitRadius, playerMask);
+                Collider2D hit = Physics2D.OverlapCircle(boss.transform.position, hitRadius, playerMask);
                 PlayerHealth playerHealth = hit != null ? hit.GetComponentInParent<PlayerHealth>() : null;
                 if (playerHealth != null)
                 {
@@ -149,19 +148,19 @@ public class CoreXDashPattern : MonoBehaviour
         if (toPlayer.sqrMagnitude < 0.001f)
             toPlayer = Vector2.right;
 
-        float targetX = toPlayer.x >= 0f ? bounds.max.x + OffscreenPadding : bounds.min.x - OffscreenPadding;
-        float targetY = toPlayer.y >= 0f ? bounds.max.y + OffscreenPadding : bounds.min.y - OffscreenPadding;
+        float targetX = toPlayer.x >= 0f ? bounds.max.x + offscreenPadding : bounds.min.x - offscreenPadding;
+        float targetY = toPlayer.y >= 0f ? bounds.max.y + offscreenPadding : bounds.min.y - offscreenPadding;
 
         return new Vector3(targetX, targetY, boss.transform.position.z);
     }
 
     private Vector3 GetHorizontalDashStartPosition(CoreXBoss boss, Bounds bounds, float side)
     {
-        float x = side < 0f ? bounds.min.x - OffscreenPadding : bounds.max.x + OffscreenPadding;
+        float x = side < 0f ? bounds.min.x - offscreenPadding : bounds.max.x + offscreenPadding;
         float y = Mathf.Clamp(
-            boss.Player.position.y + HorizontalDashHeightOffset,
-            bounds.min.y + OffscreenPadding,
-            bounds.max.y - OffscreenPadding);
+            boss.Player.position.y + horizontalDashHeightOffset,
+            bounds.min.y + offscreenPadding,
+            bounds.max.y - offscreenPadding);
 
         return new Vector3(x, y, boss.transform.position.z);
     }

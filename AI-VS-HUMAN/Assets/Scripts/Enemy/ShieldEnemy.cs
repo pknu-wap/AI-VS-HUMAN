@@ -5,8 +5,16 @@ using System.Collections;
 
 public class ShieldEnemy : EnemyBase
 {
+    public enum ShieldSide
+    {
+        Left,
+        Right
+    }
+
     private const float ShieldOffsetX = 0.6f;
     private const float WindupTime = 0.8f;
+    private const float GravityScale = 1f;
+    private const float BulletScaleMultiplier = 1.5f;
 
     [Header("이동")]
     public float moveSpeed = 2f;
@@ -14,6 +22,7 @@ public class ShieldEnemy : EnemyBase
 
     [Header("방패")]
     public Transform shieldTransform;
+    public ShieldSide shieldSide = ShieldSide.Left;
 
     [Header("탄막")]
     public GameObject bulletPrefab;
@@ -23,23 +32,26 @@ public class ShieldEnemy : EnemyBase
     public float attackCooldown = 3f;
 
     private SpriteRenderer shieldSr;
+    private Rigidbody2D shieldRigidbody;
     private float attackTimer = 0f;
     private bool isAttacking = false;
 
     protected override void Start()
     {
         base.Start();
+        shieldRigidbody = GetComponent<Rigidbody2D>();
+        ConfigureGravity();
         attackTimer = attackCooldown * 0.5f;
 
-        if (shieldTransform != null)
-        {
-            shieldSr = shieldTransform.GetComponent<SpriteRenderer>();
-            shieldTransform.localPosition = new Vector3(-ShieldOffsetX, 0f, 0f);
-
-            if (shieldSr != null)
-                shieldSr.flipX = true;
-        }
+        ConfigureShieldVisual();
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        ConfigureShieldVisual();
+    }
+#endif
 
     void Update()
     {
@@ -47,10 +59,16 @@ public class ShieldEnemy : EnemyBase
 
         FacePlayer();
 
-        if (!IsPlayerInDetectionRange()) return;
+        if (!IsPlayerInDetectionRange())
+        {
+            StopHorizontalMovement();
+            return;
+        }
 
         if (!IsPlayerInAttackRange())
             MoveTowardPlayer();
+        else
+            StopHorizontalMovement();
 
         attackTimer += Time.deltaTime;
         if (attackTimer >= attackCooldown && !isAttacking)
@@ -82,15 +100,39 @@ public class ShieldEnemy : EnemyBase
     private void MoveTowardPlayer()
     {
         float dirX = player.position.x > transform.position.x ? 1f : -1f;
-        transform.Translate(Vector2.right * dirX * moveSpeed * Time.deltaTime);
+
+        if (shieldRigidbody != null)
+            shieldRigidbody.linearVelocity = new Vector2(dirX * moveSpeed, shieldRigidbody.linearVelocity.y);
+        else
+            transform.Translate(Vector2.right * dirX * moveSpeed * Time.deltaTime);
+    }
+
+    private void StopHorizontalMovement()
+    {
+        if (shieldRigidbody != null)
+            shieldRigidbody.linearVelocity = new Vector2(0f, shieldRigidbody.linearVelocity.y);
     }
 
     private bool IsAttackBlocked()
     {
         if (player == null) return false;
 
-        // 현재 방패는 왼쪽 고정이므로 플레이어가 왼쪽에서 공격하면 막는다.
-        return player.position.x < transform.position.x;
+        bool playerIsLeft = player.position.x < transform.position.x;
+        return shieldSide == ShieldSide.Left ? playerIsLeft : !playerIsLeft;
+    }
+
+    private void ConfigureShieldVisual()
+    {
+        if (shieldTransform == null)
+            return;
+
+        shieldSr = shieldTransform.GetComponent<SpriteRenderer>();
+
+        float side = shieldSide == ShieldSide.Left ? -1f : 1f;
+        shieldTransform.localPosition = new Vector3(ShieldOffsetX * side, 0f, 0f);
+
+        if (shieldSr != null)
+            shieldSr.flipX = shieldSide == ShieldSide.Left;
     }
 
     private IEnumerator FanAttack()
@@ -134,10 +176,24 @@ public class ShieldEnemy : EnemyBase
                 transform.position,
                 Quaternion.Euler(0f, 0f, angle));
 
+            obj.transform.localScale *= BulletScaleMultiplier;
+
             Bullet bullet = obj.GetComponent<Bullet>();
             if (bullet != null)
                 bullet.Init(dir, bulletDamage, bulletSpeed);
         }
+    }
+
+    private void ConfigureGravity()
+    {
+        if (shieldRigidbody == null)
+            return;
+
+        shieldRigidbody.bodyType = RigidbodyType2D.Dynamic;
+        shieldRigidbody.gravityScale = GravityScale;
+        shieldRigidbody.angularVelocity = 0f;
+        shieldRigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
+        shieldRigidbody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
     }
 
     private IEnumerator ShieldBlockFlash()
@@ -155,7 +211,8 @@ public class ShieldEnemy : EnemyBase
         base.OnDrawGizmosSelected();
 
         Gizmos.color = Color.blue;
-        Gizmos.DrawRay(transform.position, Vector3.left * 1.5f);
+        Vector3 shieldDirection = shieldSide == ShieldSide.Left ? Vector3.left : Vector3.right;
+        Gizmos.DrawRay(transform.position, shieldDirection * 1.5f);
 
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, stopDistance);

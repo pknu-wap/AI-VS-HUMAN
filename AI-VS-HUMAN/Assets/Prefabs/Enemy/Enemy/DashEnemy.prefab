@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -179,22 +179,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27d2116232db49a4f9e4c15dc232b5de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DashEnemy
-  maxHp: 30
-  fadeDuration: 1.5
-  detectionRange: 8
-  attackRange: 6
+  maxHp: 60
+  detectionRange: 16
+  attackRange: 12
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 1536
   dashDistance: 10
   dashSpeed: 12
   dashCooldown: 1.5
-  windupTime: 0.25
-  gravityScale: 1
+  delayedDashChance: 0.3
   contactDamage: 1
-  bounceForce: 8
-  bounceDuration: 0.18
-  playerKnockbackForce: 5
-  groggyDuration: 1.2
-  wallNormalThreshold: 0.35
-  wallCheckPadding: 0.08

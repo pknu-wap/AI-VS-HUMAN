@@ -3,18 +3,6 @@ using UnityEngine;
 
 public class BossSafeZonePattern : MonoBehaviour
 {
-    private const float BorderThickness = 0.12f;
-    private const float FlashMinAlpha = 0.25f;
-    private const float FlashFrequency = 10f;
-    private const float DangerFadeInDuration = 0.35f;
-    private const float DangerLeadTime = 0.8f;
-    private const float SafeZoneFadeInDuration = 0.6f;
-    private const float SafeZonePreviewAlpha = 0.35f;
-    private const int SortingOrder = 5;
-    private static readonly Color WarningColor = new Color(0.2f, 1f, 0.35f, 0.28f);
-    private static readonly Color BorderColor = new Color(0.1f, 1f, 0.35f, 0.95f);
-    private static readonly Color DangerOutsideColor = new Color(1f, 0.05f, 0.02f, 0.38f);
-
     [Header("참조")]
     public GiantDrone boss;
     public Transform bossTransform;
@@ -36,6 +24,19 @@ public class BossSafeZonePattern : MonoBehaviour
     public float safeZoneWarningDuration = 3f;
     public int safeZoneDamage = 1;
     public float safeZoneRoomPadding = 1f;
+
+    [Header("시각 효과")]
+    public Color warningColor = new Color(0.2f, 1f, 0.35f, 0.28f);
+    public Color borderColor = new Color(0.1f, 1f, 0.35f, 0.95f);
+    public Color dangerOutsideColor = new Color(1f, 0.05f, 0.02f, 0.38f);
+    public float borderThickness = 0.12f;
+    public float flashMinAlpha = 0.25f;
+    public float flashFrequency = 10f;
+    public float dangerFadeInDuration = 0.35f;
+    public float dangerLeadTime = 0.8f;
+    public float safeZoneFadeInDuration = 0.6f;
+    [Range(0f, 1f)] public float safeZonePreviewAlpha = 0.35f;
+    public int sortingOrder = 5;
 
     private GameObject safeZoneMarker;
     private SpriteRenderer safeZoneRenderer;
@@ -98,12 +99,12 @@ public class BossSafeZonePattern : MonoBehaviour
     private IEnumerator SafeZonePattern()
     {
         Bounds zoneBounds = GetRandomSafeZoneBounds();
-        ShowSafeZoneMarker(zoneBounds, WarningColor);
+        ShowSafeZoneMarker(zoneBounds, warningColor);
 
         float elapsed = 0f;
         float duration = Mathf.Max(0.05f, safeZoneWarningDuration);
-        float leadTime = Mathf.Clamp(DangerLeadTime, 0f, duration);
-        float fadeInDuration = Mathf.Clamp(SafeZoneFadeInDuration, 0.01f, Mathf.Max(0.01f, duration - leadTime));
+        float leadTime = Mathf.Clamp(dangerLeadTime, 0f, duration);
+        float fadeInDuration = Mathf.Clamp(safeZoneFadeInDuration, 0.01f, Mathf.Max(0.01f, duration - leadTime));
 
         while (elapsed < duration)
         {
@@ -231,10 +232,10 @@ public class BossSafeZonePattern : MonoBehaviour
 
         Vector2 size = zoneBounds.size;
         currentZoneSize = size;
-        safeZoneRenderer = CreateZoneSprite("Fill", Vector2.zero, size, color, SortingOrder);
+        safeZoneRenderer = CreateZoneSprite("Fill", Vector2.zero, size, color, sortingOrder);
         CreateDangerOutsideSprites(zoneBounds);
         CreateBorderSprites(size);
-        UpdateSafeZoneVisual(0f, Mathf.Max(0.05f, safeZoneWarningDuration), Mathf.Max(0f, DangerLeadTime), Mathf.Max(0.01f, SafeZoneFadeInDuration));
+        UpdateSafeZoneVisual(0f, Mathf.Max(0.05f, safeZoneWarningDuration), Mathf.Max(0f, dangerLeadTime), Mathf.Max(0.01f, safeZoneFadeInDuration));
     }
 
     private SpriteRenderer CreateZoneSprite(string objectName, Vector2 localPosition, Vector2 size, Color color, int order)
@@ -257,35 +258,35 @@ public class BossSafeZonePattern : MonoBehaviour
             "Border Top",
             Vector2.zero,
             Vector2.zero,
-            BorderColor,
-            SortingOrder + 1);
+            borderColor,
+            sortingOrder + 1);
 
         borderRenderers[1] = CreateZoneSprite(
             "Border Left",
             Vector2.zero,
             Vector2.zero,
-            BorderColor,
-            SortingOrder + 1);
+            borderColor,
+            sortingOrder + 1);
 
         borderRenderers[2] = CreateZoneSprite(
             "Border Bottom",
             Vector2.zero,
             Vector2.zero,
-            BorderColor,
-            SortingOrder + 1);
+            borderColor,
+            sortingOrder + 1);
 
         borderRenderers[3] = CreateZoneSprite(
             "Border Right",
             Vector2.zero,
             Vector2.zero,
-            BorderColor,
-            SortingOrder + 1);
+            borderColor,
+            sortingOrder + 1);
     }
 
     private void CreateDangerOutsideSprites(Bounds zoneBounds)
     {
         Bounds areaBounds = GetSafeZoneRoomBounds();
-        Color color = DangerOutsideColor;
+        Color color = dangerOutsideColor;
         color.a = 0f;
 
         float leftWidth = Mathf.Max(0f, zoneBounds.min.x - areaBounds.min.x);
@@ -323,27 +324,27 @@ public class BossSafeZonePattern : MonoBehaviour
         if (size.x <= 0.01f || size.y <= 0.01f)
             return null;
 
-        return CreateZoneSprite(objectName, localPosition, size, color, SortingOrder - 1);
+        return CreateZoneSprite(objectName, localPosition, size, color, sortingOrder - 1);
     }
 
     private void UpdateSafeZoneVisual(float elapsed, float duration, float leadTime, float fadeInDuration)
     {
-        float previewFade = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, DangerFadeInDuration));
+        float previewFade = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, dangerFadeInDuration));
         float fullFade = Mathf.Clamp01((elapsed - leadTime) / fadeInDuration);
-        float previewAlpha = Mathf.Clamp01(SafeZonePreviewAlpha) * previewFade;
+        float previewAlpha = Mathf.Clamp01(safeZonePreviewAlpha) * previewFade;
         float zoneAlphaScale = Mathf.Lerp(previewAlpha, 1f, fullFade);
         float borderAlphaScale = fullFade;
 
         if (safeZoneRenderer != null)
-            safeZoneRenderer.color = WithScaledAlpha(WarningColor, zoneAlphaScale);
+            safeZoneRenderer.color = WithScaledAlpha(warningColor, zoneAlphaScale);
 
         float timerProgress = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, duration));
         UpdateTimerBorder(timerProgress, Mathf.Max(previewFade, borderAlphaScale));
 
-        float alphaPulse = (Mathf.Sin(Time.time * FlashFrequency) + 1f) * 0.5f;
-        float dangerFade = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, DangerFadeInDuration));
-        Color dangerColor = DangerOutsideColor;
-        dangerColor.a = Mathf.Lerp(Mathf.Clamp01(FlashMinAlpha), DangerOutsideColor.a, alphaPulse) * dangerFade;
+        float alphaPulse = (Mathf.Sin(Time.time * flashFrequency) + 1f) * 0.5f;
+        float dangerFade = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, dangerFadeInDuration));
+        Color dangerColor = dangerOutsideColor;
+        dangerColor.a = Mathf.Lerp(Mathf.Clamp01(flashMinAlpha), dangerOutsideColor.a, alphaPulse) * dangerFade;
 
         for (int i = 0; i < dangerRenderers.Length; i++)
         {
@@ -354,7 +355,7 @@ public class BossSafeZonePattern : MonoBehaviour
 
     private void UpdateTimerBorder(float progress, float alphaScale)
     {
-        float thickness = Mathf.Max(0.02f, BorderThickness);
+        float thickness = Mathf.Max(0.02f, borderThickness);
         float halfWidth = currentZoneSize.x * 0.5f;
         float halfHeight = currentZoneSize.y * 0.5f;
 
@@ -384,7 +385,7 @@ public class BossSafeZonePattern : MonoBehaviour
 
         renderer.transform.localPosition = new Vector2(centerX, centerY);
         renderer.transform.localScale = new Vector3(length, thickness, 1f);
-        renderer.color = WithScaledAlpha(BorderColor, length <= 0.001f ? 0f : alphaScale);
+        renderer.color = WithScaledAlpha(borderColor, length <= 0.001f ? 0f : alphaScale);
     }
 
     private void SetVerticalBorder(SpriteRenderer renderer, float progress, bool topToBottom, float halfWidth, float halfHeight, float thickness, float alphaScale)
@@ -402,7 +403,7 @@ public class BossSafeZonePattern : MonoBehaviour
 
         renderer.transform.localPosition = new Vector2(centerX, centerY);
         renderer.transform.localScale = new Vector3(thickness, length, 1f);
-        renderer.color = WithScaledAlpha(BorderColor, length <= 0.001f ? 0f : alphaScale);
+        renderer.color = WithScaledAlpha(borderColor, length <= 0.001f ? 0f : alphaScale);
     }
 
     private Color WithScaledAlpha(Color color, float alphaScale)

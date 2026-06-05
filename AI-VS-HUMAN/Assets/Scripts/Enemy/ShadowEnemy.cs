@@ -10,6 +10,8 @@ using System.Collections.Generic;
 /// </summary>
 public class ShadowEnemy : MonoBehaviour
 {
+    private const float EnemyCheckInterval = 0.25f;
+
     [Header("설정")]
     public float recordDelay  = 3f;     // 몇 초 전 경로를 따라갈지
     public float damage       = 1f;
@@ -36,6 +38,8 @@ public class ShadowEnemy : MonoBehaviour
     private bool           canDamagePlayer = false;
     private LayerMask      playerMask;
     private Color          originalColor;
+    private Room           myRoom;
+    private float          enemyCheckTimer = 0f;
 
     void Start()
     {
@@ -44,11 +48,13 @@ public class ShadowEnemy : MonoBehaviour
         player        = GameObject.FindGameObjectWithTag("Player")?.transform;
         playerMask    = LayerMask.GetMask("Player");
         originalColor = sr != null ? sr.color : Color.white;
+        ResolveRoom();
 
         if (rb != null)
         {
             // Dynamic에서 Kinematic으로 변경하여 물리 엔진에 의해 밀려나거나 엉키는 현상 차단
             rb.bodyType               = RigidbodyType2D.Kinematic;
+            rb.angularVelocity        = 0f;
             rb.constraints            = RigidbodyConstraints2D.FreezeRotation;
             rb.simulated              = true;
         }
@@ -87,7 +93,12 @@ public class ShadowEnemy : MonoBehaviour
     // ── 경로 기록 + 플레이어 감지 ───────────────
     void Update()
     {
-        if (player == null || isDead) return;
+        if (isDead) return;
+
+        KeepUpright();
+        CheckDisappearIfNoOtherEnemies();
+
+        if (player == null) return;
 
         _records.Enqueue(new PositionRecord(player.position, Time.time));
 
@@ -110,6 +121,8 @@ public class ShadowEnemy : MonoBehaviour
     {
         if (rb == null || isDead) return;
         if (_records.Count == 0) return;
+
+        KeepUpright();
 
         Vector3 targetPos = transform.position;
         bool hasTarget = false;
@@ -142,9 +155,89 @@ public class ShadowEnemy : MonoBehaviour
             sr.flipX = player.position.x < transform.position.x;
     }
 
+    private void KeepUpright()
+    {
+        if (rb != null)
+            rb.angularVelocity = 0f;
+
+        transform.rotation = Quaternion.identity;
+    }
+
+    private void CheckDisappearIfNoOtherEnemies()
+    {
+        enemyCheckTimer += Time.deltaTime;
+        if (enemyCheckTimer < EnemyCheckInterval)
+            return;
+
+        enemyCheckTimer = 0f;
+
+        if (myRoom == null)
+            ResolveRoom();
+
+        if (myRoom != null && !HasOtherEnemyInRoom())
+        {
+            isDead = true;
+            StartCoroutine(Die());
+        }
+    }
+
+    private bool HasOtherEnemyInRoom()
+    {
+        Bounds bounds = myRoom.GetBounds();
+
+        foreach (EnemyBase enemy in FindObjectsByType<EnemyBase>(FindObjectsSortMode.None))
+        {
+            if (enemy != null && enemy.gameObject.activeInHierarchy && bounds.Contains(enemy.transform.position))
+                return true;
+        }
+
+        foreach (CoreXBoss boss in FindObjectsByType<CoreXBoss>(FindObjectsSortMode.None))
+        {
+            if (boss != null && boss.gameObject.activeInHierarchy && !boss.IsDead && bounds.Contains(boss.transform.position))
+                return true;
+        }
+
+        foreach (GiantDrone boss in FindObjectsByType<GiantDrone>(FindObjectsSortMode.None))
+        {
+            if (boss != null && boss.gameObject.activeInHierarchy && !boss.isDead && bounds.Contains(boss.transform.position))
+                return true;
+        }
+
+        foreach (ServerNode server in FindObjectsByType<ServerNode>(FindObjectsSortMode.None))
+        {
+            if (server != null && server.gameObject.activeInHierarchy && bounds.Contains(server.transform.position))
+                return true;
+        }
+
+        foreach (HealDrone healDrone in FindObjectsByType<HealDrone>(FindObjectsSortMode.None))
+        {
+            if (healDrone != null && healDrone.gameObject.activeInHierarchy && bounds.Contains(healDrone.transform.position))
+                return true;
+        }
+
+        return false;
+    }
+
+    private void ResolveRoom()
+    {
+        Room[] allRooms = FindObjectsByType<Room>(FindObjectsSortMode.None);
+        foreach (Room room in allRooms)
+        {
+            if (room != null && room.GetBounds().Contains(transform.position))
+            {
+                myRoom = room;
+                return;
+            }
+        }
+    }
+
     // ── 사망 ────────────────────────────────────
     IEnumerator Die()
     {
+        Collider2D col = GetComponent<Collider2D>();
+        if (col != null)
+            col.enabled = false;
+
         float fadeDuration = 0.5f;
         for (float t = 0f; t < fadeDuration; t += Time.deltaTime)
         {

@@ -33,6 +33,7 @@ public class DashEnemy : EnemyBase
     private Vector2 dashDirection;
     private Vector2 dashStartPosition;
     private readonly RaycastHit2D[] wallHits = new RaycastHit2D[6];
+    private readonly Collider2D[] playerOverlapHits = new Collider2D[4];
     private float cooldownTimer;
     private float currentDashSpeed;
     private bool isPreparing;
@@ -47,6 +48,7 @@ public class DashEnemy : EnemyBase
         dashRb = GetComponent<Rigidbody2D>();
         dashCollider = GetComponent<Collider2D>();
         ConfigureRigidbody();
+        IgnoreOtherDashEnemyCollisions();
 
         cooldownTimer = dashCooldown;
     }
@@ -79,6 +81,9 @@ public class DashEnemy : EnemyBase
     private void FixedUpdate()
     {
         if (!isDashing || dashRb == null)
+            return;
+
+        if (TryHitPlayerByOverlap())
             return;
 
         if (TryFindWallAhead(out Vector2 bounceDirection))
@@ -255,6 +260,36 @@ public class DashEnemy : EnemyBase
         return hitCollider != null ? hitCollider.GetComponentInParent<PlayerHealth>() : null;
     }
 
+    private bool TryHitPlayerByOverlap()
+    {
+        if (dashCollider == null)
+            return false;
+
+        Bounds bounds = dashCollider.bounds;
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.SetLayerMask(Physics2D.DefaultRaycastLayers);
+        filter.useTriggers = true;
+
+        int hitCount = Physics2D.OverlapBox(
+            bounds.center,
+            bounds.size,
+            0f,
+            filter,
+            playerOverlapHits);
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            PlayerHealth playerHealth = GetPlayerHealth(playerOverlapHits[i]);
+            if (playerHealth == null)
+                continue;
+
+            HitPlayer(playerHealth);
+            return true;
+        }
+
+        return false;
+    }
+
     private bool IsObstacle(Collider2D hitCollider)
     {
         if (hitCollider == null)
@@ -355,6 +390,28 @@ public class DashEnemy : EnemyBase
         dashRb.constraints |= RigidbodyConstraints2D.FreezeRotation;
         dashRb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         SetHorizontalLock(true);
+    }
+
+    private void IgnoreOtherDashEnemyCollisions()
+    {
+        Collider2D[] ownColliders = GetComponentsInChildren<Collider2D>();
+        Collider2D[] allColliders = FindObjectsByType<Collider2D>(FindObjectsSortMode.None);
+
+        foreach (Collider2D otherCollider in allColliders)
+        {
+            if (otherCollider == null || otherCollider.transform.IsChildOf(transform))
+                continue;
+
+            if (otherCollider.GetComponentInParent<DashEnemy>() == null
+                && otherCollider.GetComponentInParent<DashDroneEnemy>() == null)
+                continue;
+
+            foreach (Collider2D ownCollider in ownColliders)
+            {
+                if (ownCollider != null)
+                    Physics2D.IgnoreCollision(ownCollider, otherCollider, true);
+            }
+        }
     }
 
     private void SetHorizontalLock(bool locked)

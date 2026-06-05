@@ -32,10 +32,13 @@ public class DroneEnemy : EnemyBase
     private float hoverTime = 0f;
     private Vector2 hoverTargetPos;
     private bool curveLeft = true;
+    private Rigidbody2D droneRigidbody;
 
     protected override void Start()
     {
         base.Start();
+        droneRigidbody = GetComponent<Rigidbody2D>();
+        ConfigureUprightRigidbody();
         attackTimer = attackCooldown * 0.5f;
     }
 
@@ -43,6 +46,7 @@ public class DroneEnemy : EnemyBase
     {
         if (isDead || player == null) return;
 
+        KeepUpright();
         hoverTime += Time.deltaTime;
 
         if (IsPlayerInDetectionRange())
@@ -104,6 +108,15 @@ public class DroneEnemy : EnemyBase
     {
         if (spriteRenderer == null || player == null) return;
         spriteRenderer.flipX = player.position.x < transform.position.x;
+    }
+
+    private void ConfigureUprightRigidbody()
+    {
+        if (droneRigidbody == null)
+            return;
+
+        droneRigidbody.angularVelocity = 0f;
+        droneRigidbody.constraints |= RigidbodyConstraints2D.FreezeRotation;
     }
 
     // 플레이어 방향을 기준으로 spreadAngle만큼 퍼지는 부채꼴 탄막을 동시에 발사한다.

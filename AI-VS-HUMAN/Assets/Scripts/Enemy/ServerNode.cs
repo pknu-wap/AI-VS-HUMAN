@@ -15,6 +15,7 @@ public class ServerNode : MonoBehaviour, IDamageable
     private float          currentHp;
     private bool           isDead = false;
     private SpriteRenderer sr;
+    private Rigidbody2D    rb;
     private Coroutine      hitFlashCoroutine;
     private Color          originalColor;
 
@@ -44,7 +45,31 @@ public class ServerNode : MonoBehaviour, IDamageable
     {
         currentHp     = maxHp;
         sr            = GetComponent<SpriteRenderer>();
+        rb            = GetComponent<Rigidbody2D>();
         originalColor = sr != null ? sr.color : Color.white;
+        ConfigureRigidbody();
+    }
+
+    private void Update()
+    {
+        KeepUpright();
+    }
+
+    private void ConfigureRigidbody()
+    {
+        if (rb == null)
+            return;
+
+        rb.angularVelocity = 0f;
+        rb.constraints |= RigidbodyConstraints2D.FreezeRotation;
+    }
+
+    private void KeepUpright()
+    {
+        if (rb != null)
+            rb.angularVelocity = 0f;
+
+        transform.rotation = Quaternion.identity;
     }
 
     public void TakeDamage(float damage)

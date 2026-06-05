@@ -55,6 +55,8 @@ public class HealDrone : MonoBehaviour, IDamageable
 
     private void Update()
     {
+        KeepUpright();
+
         if (isDead || boss == null)
             return;
 
@@ -178,6 +180,7 @@ public class HealDrone : MonoBehaviour, IDamageable
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
             rb.gravityScale = 0f;
             rb.bodyType = RigidbodyType2D.Kinematic;
             rb.constraints = RigidbodyConstraints2D.FreezeRotation;
@@ -185,5 +188,13 @@ public class HealDrone : MonoBehaviour, IDamageable
 
         if (droneCollider != null)
             droneCollider.isTrigger = true;
+    }
+
+    private void KeepUpright()
+    {
+        if (rb != null)
+            rb.angularVelocity = 0f;
+
+        transform.rotation = Quaternion.identity;
     }
 }

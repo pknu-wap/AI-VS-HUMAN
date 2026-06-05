@@ -171,9 +171,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b46e4bc5af3f1c4b9d2c39c04187ab9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SoldierEnemy
-  maxHp: 30
-  detectionRange: 8
-  attackRange: 6
+  maxHp: 50
+  detectionRange: 16
+  attackRange: 12
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 0
@@ -203,7 +203,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1752912040473982514
 Transform:
   m_ObjectHideFlags: 0

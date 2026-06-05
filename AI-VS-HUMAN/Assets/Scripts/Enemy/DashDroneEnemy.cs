@@ -26,6 +26,7 @@ public class DashDroneEnemy : EnemyBase
     private Vector2 dashDirection;
     private Vector2 dashStartPosition;
     private readonly RaycastHit2D[] obstacleHits = new RaycastHit2D[6];
+    private readonly Collider2D[] playerOverlapHits = new Collider2D[4];
     private float cooldownTimer;
     private bool isPreparing;
     private bool isDashing;
@@ -39,6 +40,7 @@ public class DashDroneEnemy : EnemyBase
         droneRb = GetComponent<Rigidbody2D>();
         droneCollider = GetComponent<Collider2D>();
         ConfigureRigidbody();
+        IgnoreOtherDashEnemyCollisions();
 
         cooldownTimer = dashCooldown;
     }
@@ -48,6 +50,7 @@ public class DashDroneEnemy : EnemyBase
         if (isDead || player == null)
             return;
 
+        KeepUpright();
         FacePlayer();
 
         if (isDashing)
@@ -71,6 +74,9 @@ public class DashDroneEnemy : EnemyBase
     private void FixedUpdate()
     {
         if (!isDashing || droneRb == null)
+            return;
+
+        if (TryHitPlayerByOverlap())
             return;
 
         if (TryFindObstacleAhead(out Vector2 bounceDirection))
@@ -248,6 +254,36 @@ public class DashDroneEnemy : EnemyBase
         return hitCollider != null ? hitCollider.GetComponentInParent<PlayerHealth>() : null;
     }
 
+    private bool TryHitPlayerByOverlap()
+    {
+        if (droneCollider == null)
+            return false;
+
+        Bounds bounds = droneCollider.bounds;
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.SetLayerMask(Physics2D.DefaultRaycastLayers);
+        filter.useTriggers = true;
+
+        int hitCount = Physics2D.OverlapBox(
+            bounds.center,
+            bounds.size,
+            0f,
+            filter,
+            playerOverlapHits);
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            PlayerHealth playerHealth = GetPlayerHealth(playerOverlapHits[i]);
+            if (playerHealth == null)
+                continue;
+
+            HitPlayer(playerHealth);
+            return true;
+        }
+
+        return false;
+    }
+
     private bool IsObstacle(Collider2D hitCollider)
     {
         if (hitCollider == null)
@@ -327,9 +363,32 @@ public class DashDroneEnemy : EnemyBase
         droneRb.bodyType = RigidbodyType2D.Dynamic;
         droneRb.gravityScale = 0f;
         droneRb.linearDamping = 0f;
+        droneRb.angularVelocity = 0f;
         droneRb.constraints = RigidbodyConstraints2D.FreezeRotation;
         droneRb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         SetPositionLock(true);
+    }
+
+    private void IgnoreOtherDashEnemyCollisions()
+    {
+        Collider2D[] ownColliders = GetComponentsInChildren<Collider2D>();
+        Collider2D[] allColliders = FindObjectsByType<Collider2D>(FindObjectsSortMode.None);
+
+        foreach (Collider2D otherCollider in allColliders)
+        {
+            if (otherCollider == null || otherCollider.transform.IsChildOf(transform))
+                continue;
+
+            if (otherCollider.GetComponentInParent<DashEnemy>() == null
+                && otherCollider.GetComponentInParent<DashDroneEnemy>() == null)
+                continue;
+
+            foreach (Collider2D ownCollider in ownColliders)
+            {
+                if (ownCollider != null)
+                    Physics2D.IgnoreCollision(ownCollider, otherCollider, true);
+            }
+        }
     }
 
     private void SetPositionLock(bool locked)
@@ -341,6 +400,7 @@ public class DashDroneEnemy : EnemyBase
         if (locked)
             constraints |= RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezePositionY;
 
+        droneRb.angularVelocity = 0f;
         droneRb.constraints = constraints;
     }
 

@@ -49,6 +49,11 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         SetupRigidbody();
     }
 
+    protected virtual void LateUpdate()
+    {
+        KeepUpright();
+    }
+
     // 체력 같은 기본 수치를 초기화한다.
     private void InitStats()
     {
@@ -81,8 +86,19 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     {
         if (rb == null) return;
 
+        rb.angularVelocity = 0f;
+        rb.constraints |= RigidbodyConstraints2D.FreezeRotation;
+
         if (rb.gravityScale > 0f)
             rb.bodyType = RigidbodyType2D.Kinematic;
+    }
+
+    protected void KeepUpright()
+    {
+        if (rb != null)
+            rb.angularVelocity = 0f;
+
+        transform.rotation = Quaternion.identity;
     }
 
     // 플레이어가 감지 범위 안에 있는지 확인한다.
@@ -194,8 +210,10 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         if (rb == null) return;
 
         rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
         rb.gravityScale = 0f;
         rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.constraints |= RigidbodyConstraints2D.FreezeRotation;
     }
 
     // 사망 후 서서히 투명해진 뒤 오브젝트를 삭제한다.

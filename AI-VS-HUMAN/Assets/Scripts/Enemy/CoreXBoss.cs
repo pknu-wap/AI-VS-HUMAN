@@ -11,10 +11,9 @@ using UnityEngine;
 [RequireComponent(typeof(CoreXElectricTrapPattern))]
 public class CoreXBoss : MonoBehaviour, IDamageable
 {
-    private const float FadeDuration = 2f;
-
     [Header("체력")]
     public float maxHp = 500f;
+    public float fadeDuration = 2f;
     public bool deactivateOnDeathInsteadOfDestroy;
 
     [Header("페이즈")]
@@ -91,6 +90,11 @@ public class CoreXBoss : MonoBehaviour, IDamageable
             ResetBattleState();
 
         StartBattleFlow();
+    }
+
+    private void LateUpdate()
+    {
+        KeepUpright();
     }
 
     public void PrepareForBossRoomActivation(Room room, Transform playerTransform, BossHpBar bar,
@@ -205,6 +209,16 @@ public class CoreXBoss : MonoBehaviour, IDamageable
 
         rb.gravityScale = 0f;
         rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.angularVelocity = 0f;
+        rb.constraints |= RigidbodyConstraints2D.FreezeRotation;
+    }
+
+    private void KeepUpright()
+    {
+        if (rb != null)
+            rb.angularVelocity = 0f;
+
+        transform.rotation = Quaternion.identity;
     }
 
     private IEnumerator BossBattleFlow()
@@ -365,11 +379,11 @@ public class CoreXBoss : MonoBehaviour, IDamageable
         if (hpBar != null)
             hpBar.DestroyBar();
 
-        for (float t = 0f; t < FadeDuration; t += Time.deltaTime)
+        for (float t = 0f; t < fadeDuration; t += Time.deltaTime)
         {
             if (spriteRenderer != null)
             {
-                float alpha = Mathf.Lerp(1f, 0f, t / FadeDuration);
+                float alpha = Mathf.Lerp(1f, 0f, t / fadeDuration);
                 spriteRenderer.color = new Color(originalColor.r, originalColor.g, originalColor.b, alpha);
             }
 
