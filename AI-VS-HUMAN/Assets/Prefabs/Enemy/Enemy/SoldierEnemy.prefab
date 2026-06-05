@@ -13,9 +13,9 @@ GameObject:
   - component: {fileID: 6976490518564677445}
   - component: {fileID: 6893815587836975302}
   - component: {fileID: 7449481946188129402}
-  m_Layer: 3
+  m_Layer: 8
   m_Name: SoldierEnemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -174,21 +174,17 @@ MonoBehaviour:
   maxHp: 30
   detectionRange: 8
   attackRange: 6
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 128
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 0
-  deathEffect: {fileID: 0}
-  hitEffect: {fileID: 0}
   bulletPrefab: {fileID: 8328549674659963371, guid: fc60a2c9fda50a9418bbd5805937d41d, type: 3}
   firePoint: {fileID: 1752912040473982514}
   bulletDamage: 1
   bulletSpeed: 8
-  bulletsPerBurst: 3
-  burstInterval: 0.15
   attackCooldown: 2.5
+  bulletsPerBurst: 3
+  aimDelay: 0.6
+  predictiveShotChance: 0.3
   moveSpeed: 2
   stopDistance: 4
 --- !u!1 &7644513050381837681
@@ -201,7 +197,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1752912040473982514}
   - component: {fileID: 8835773150464211346}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: firePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}

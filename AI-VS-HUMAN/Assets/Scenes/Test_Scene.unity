@@ -8119,7 +8119,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1076206368
+--- !u!1 &619941770 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6650214256465391681, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
+  m_PrefabInstance: {fileID: 962719378}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &619941771 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
+  m_PrefabInstance: {fileID: 962719378}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &962719378
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -8127,71 +8137,55 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1781819257}
     m_Modifications:
-    - target: {fileID: 3556424095073368702, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
-      propertyPath: m_Name
-      value: GiantDrone
-      objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.41999817
+      value: 1.2976723
       objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -20.23
+      value: -30.504261
       objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalPosition.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalRotation.x
       value: -0
       objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalRotation.y
       value: -0
       objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalRotation.z
       value: -0
       objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
+    - target: {fileID: 6596932916886513284, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6650214256465391681, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
+      propertyPath: m_Name
+      value: ShieldEnemy
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
---- !u!4 &1076206369 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 4843393630052019735, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
-  m_PrefabInstance: {fileID: 1076206368}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1076206370 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2062582714990080197, guid: 104190c10b25aa54e9387d1c5d3fa6be, type: 3}
-  m_PrefabInstance: {fileID: 1076206368}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5d58716192a9b8a4181929bade8fc096, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GiantDrone
+  m_SourcePrefab: {fileID: 100100000, guid: 148fafc9dd4c69c429d7e8dd97d19d14, type: 3}
 --- !u!1 &1222481683
 GameObject:
   m_ObjectHideFlags: 0
@@ -8630,7 +8624,7 @@ PrefabInstance:
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 1687378342772749748, guid: 51a74a5a7da3c204bb17263b947d1855, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1076206369}
+      addedObject: {fileID: 619941771}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1169144368050561334, guid: 51a74a5a7da3c204bb17263b947d1855, type: 3}
       insertIndex: -1
@@ -8666,27 +8660,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 1781819259}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bddca73b6ead04a4587258a697ff99c1, type: 3}
+  m_Script: {fileID: 11500000, guid: f232a4d90f3e4cb9a65410ef97f45610, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Stage1BossRoomController
-  player: {fileID: 1436086872}
-  roomCameraController: {fileID: 427596049}
-  bossRoom: {fileID: 1781819258}
-  boss: {fileID: 1076206370}
-  hideSceneBossUntilRoomEntered: 1
-  spawnOnlyOnce: 1
+  m_EditorClassIdentifier: Assembly-CSharp::RoomEnemyEncounter
+  player: {fileID: 0}
+  room: {fileID: 1781819258}
+  enemies:
+  - {fileID: 619941770}
+  deactivateEnemiesOnStart: 1
+  triggerOnce: 1
   resetOnPlayerDeath: 1
-  createBossLockWalls: 1
-  scrollSpeed: 3
-  scrollDelay: 3
-  phase1FollowSpeed: 3
-  keepBossVisibleInPhase2: 1
-  phase2BossCameraYOffset: 6
-  phase2BossFollowSpeed: 9
-  enterWhenPlayerInsideRoom: 1
-  startPhase2WhenBossHalfHealth: 1
-  destroyEnemiesInsideRoomOnBossDeath: 1
-  enemiesToDestroyOnBossDeath: []
+  createLockWalls: 1
 --- !u!1001 &7587917901683441193
 PrefabInstance:
   m_ObjectHideFlags: 0

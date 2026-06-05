@@ -44,4 +44,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32cafca4fcb9c3448aef9a4d5831dd9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Room
-  roomSize: {x: 16, y: 9}
+  nX: 2
+  nY: 2
+  useRespawnPosition: 0
+  respawnPosition: {x: 0, y: 0, z: 0}
+  respawnPoint: {fileID: 0}

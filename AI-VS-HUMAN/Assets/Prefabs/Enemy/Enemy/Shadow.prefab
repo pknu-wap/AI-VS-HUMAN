@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: -5430919390945800554}
   m_Layer: 3
   m_Name: Shadow
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -137,6 +137,7 @@ MonoBehaviour:
   damage: 1
   detectRadius: 0.4
   fadeInTime: 1
+  pathOffsetX: 0
 --- !u!61 &-5430919390945800554
 BoxCollider2D:
   m_ObjectHideFlags: 0
